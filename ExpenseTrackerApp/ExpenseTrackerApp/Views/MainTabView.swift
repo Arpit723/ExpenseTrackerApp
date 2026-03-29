@@ -43,13 +43,20 @@ struct MainTabView: View {
         }
     }
 
+    // MARK: - Tab Navigation Helper
+    private func navigateToTab(_ tab: Tab) {
+        withAnimation(.easeInOut(duration: 0.25)) {
+            selectedTab = tab
+        }
+    }
+
     var body: some View {
         ZStack(alignment: .bottom) {
             // MARK: - Tab Content
             Group {
                 switch selectedTab {
                 case .dashboard:
-                    DashboardView()
+                    DashboardView(onNavigateToTab: navigateToTab)
                 case .transactions:
                     TransactionsView()
                 case .budget:

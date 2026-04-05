@@ -531,17 +531,11 @@ New files added to the filesystem are NOT automatically included in the Xcode bu
 | A5 | AuthState should be defined alongside AuthServiceProtocol (in the same file or a separate file) | Code Examples | Low -- organizational preference, no functional impact. |
 | A6 | MockAuthService uses `DispatchQueue.main.asyncAfter` for simulating async behavior | Code Examples | Low -- alternative is async/await, but D-03 chose completion handlers. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Protocol file organization**
-   - What we know: CONTEXT.md gives Claude discretion on file organization.
-   - What's unclear: Whether to use a `Protocols/` directory at the project root level or nest under `Services/`.
-   - Recommendation: Use `Protocols/` as a new top-level directory. This keeps abstractions separate from implementations and matches the architecture research diagram. The codebase research (ARCHITECTURE.md) already shows this pattern.
+1. **Protocol file organization** — RESOLVED: Use `Protocols/` as a new top-level directory. Plan 01 Task 1 creates `ExpenseTrackerApp/Protocols/DataServiceProtocol.swift` and `ExpenseTrackerApp/Protocols/AuthServiceProtocol.swift`.
 
-2. **AuthState enum location**
-   - What we know: D-04 defines AuthState with three cases. Needs to be defined somewhere.
-   - What's unclear: Same file as AuthServiceProtocol, or separate file.
-   - Recommendation: Same file as AuthServiceProtocol. It's a small enum tightly coupled to the auth protocol.
+2. **AuthState enum location** — RESOLVED: Same file as AuthServiceProtocol. Plan 01 Task 1 defines AuthState inside `ExpenseTrackerApp/Protocols/AuthServiceProtocol.swift`.
 
 ## Environment Availability
 

@@ -33,8 +33,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Define DataServiceProtocol and AuthServiceProtocol, refactor ViewModels to use protocol types, add DataService conformance
-- [ ] 01-02-PLAN.md — Create MockDataService and MockAuthService in test target with protocol conformance smoke tests
+- [x] 01-01-PLAN.md — Define DataServiceProtocol and AuthServiceProtocol, refactor ViewModels to use protocol types, add DataService conformance
+- [x] 01-02-PLAN.md — Create MockDataService and MockAuthService in test target with protocol conformance smoke tests
 
 ### Phase 2: Auth Protocol and UI
 **Goal**: Users can see and interact with login, register, and auth gate screens using a mock auth service

@@ -9,7 +9,7 @@ import Foundation
 import Combine
 
 // MARK: - Data Service
-class DataService: ObservableObject {
+class DataService: ObservableObject, DataServiceProtocol {
     static let shared = DataService()
 
     // MARK: - Published Properties

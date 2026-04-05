@@ -19,11 +19,11 @@ class DashboardViewModel: ObservableObject {
     @Published var categories: [UUID: Category] = [:]
 
     // MARK: - Dependencies
-    private let dataService: DataService
+    private let dataService: any DataServiceProtocol
     private var cancellables = Set<AnyCancellable>()
 
     // MARK: - Initialization
-    init(dataService: DataService = .shared) {
+    init(dataService: any DataServiceProtocol = DataService.shared) {
         self.dataService = dataService
         setupBindings()
         refreshData()

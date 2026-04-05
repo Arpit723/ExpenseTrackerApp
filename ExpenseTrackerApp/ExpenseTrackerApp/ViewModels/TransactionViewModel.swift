@@ -48,7 +48,7 @@ class TransactionViewModel: ObservableObject {
     @Published var isLoading: Bool = false
 
     // MARK: - Dependencies
-    private let dataService: DataService
+    private let dataService: any DataServiceProtocol
     private var cancellables = Set<AnyCancellable>()
 
     // MARK: - Computed Properties
@@ -84,7 +84,7 @@ class TransactionViewModel: ObservableObject {
     }
 
     // MARK: - Initialization
-    init(dataService: DataService = .shared) {
+    init(dataService: any DataServiceProtocol = DataService.shared) {
         self.dataService = dataService
         setupBindings()
         loadTransactions()

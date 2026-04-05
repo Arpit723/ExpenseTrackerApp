@@ -17,7 +17,7 @@ class SettingsViewModel: ObservableObject {
     @AppStorage("currencySymbol") var currencySymbol: String = "$"
 
     // MARK: - Dependencies
-    private let dataService: DataService
+    private let dataService: any DataServiceProtocol
 
     // MARK: - Computed Properties
     var currentTheme: AppTheme {
@@ -50,7 +50,7 @@ class SettingsViewModel: ObservableObject {
     ]
 
     // MARK: - Initialization
-    init(dataService: DataService = .shared) {
+    init(dataService: any DataServiceProtocol = DataService.shared) {
         self.dataService = dataService
     }
 }

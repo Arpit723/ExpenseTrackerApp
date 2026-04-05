@@ -30,11 +30,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. AuthServiceProtocol declares register, login, logout, and auth state listener methods
   4. MockDataService and MockAuthService conform to their respective protocols and are usable in tests
   5. App builds and runs identically to before — no behavior changes, only structural refactoring
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 01-01: Extract DataServiceProtocol from DataService and wire ViewModels
-- [ ] 01-02: Define AuthServiceProtocol and create MockDataService/MockAuthService
+- [ ] 01-01-PLAN.md — Define DataServiceProtocol and AuthServiceProtocol, refactor ViewModels to use protocol types, add DataService conformance
+- [ ] 01-02-PLAN.md — Create MockDataService and MockAuthService in test target with protocol conformance smoke tests
 
 ### Phase 2: Auth Protocol and UI
 **Goal**: Users can see and interact with login, register, and auth gate screens using a mock auth service
@@ -112,7 +112,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Protocol Extraction | 0/2 | Not started | - |
+| 1. Protocol Extraction | 0/2 | Ready to execute | - |
 | 2. Auth Protocol and UI | 0/3 | Not started | - |
 | 3. Firebase SDK Integration | 0/3 | Not started | - |
 | 4. Firestore Data Layer | 0/3 | Not started | - |

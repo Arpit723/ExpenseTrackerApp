@@ -9,7 +9,7 @@ import Foundation
 import Combine
 
 // MARK: - Auth State
-enum AuthState {
+enum AuthState: Equatable {
     case loading
     case authenticated(UserProfile)
     case unauthenticated

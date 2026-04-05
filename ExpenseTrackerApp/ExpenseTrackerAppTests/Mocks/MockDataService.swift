@@ -13,7 +13,7 @@ import Combine
 @MainActor
 class MockDataService: ObservableObject, DataServiceProtocol {
     @Published var transactions: [Transaction] = []
-    @Published var categories: [Category] = Category.defaultCategories
+    @Published var categories: [ExpenseTrackerApp.Category] = ExpenseTrackerApp.Category.defaultCategories
     @Published var userProfile: UserProfile?
 
     // MARK: - Computed Properties
@@ -39,7 +39,7 @@ class MockDataService: ObservableObject, DataServiceProtocol {
     }
 
     // MARK: - Helper Methods
-    func category(for id: UUID) -> Category? {
+    func category(for id: UUID) -> ExpenseTrackerApp.Category? {
         categories.first { $0.id == id }
     }
 

@@ -20,6 +20,7 @@ Users can securely log in, have their transactions persisted across sessions, an
 - ✓ 12 built-in categories with icons and colors — existing
 - ✓ Settings with currency selection and theme (Light/Dark/System) — existing
 - ✓ MVVM architecture with in-memory DataService — existing
+- ✓ Protocol-based service abstraction (DataServiceProtocol, AuthServiceProtocol) for dependency injection — Validated in Phase 1: Protocol Extraction
 
 ### Active
 
@@ -31,7 +32,6 @@ Users can securely log in, have their transactions persisted across sessions, an
 - [ ] User session persists across app launches
 - [ ] User's transactions are stored in Firebase Firestore, scoped per user UID
 - [ ] Unauthenticated users see login/register screen, not the main app
-- [ ] Protocol-based service abstraction (DataServiceProtocol, AuthServiceProtocol) for dependency injection
 - [ ] Unit tests for all ViewModels (Dashboard, Transaction, Settings, Auth)
 - [ ] Unit tests for DataService and AuthService
 - [ ] 80% code coverage on ViewModels and Services

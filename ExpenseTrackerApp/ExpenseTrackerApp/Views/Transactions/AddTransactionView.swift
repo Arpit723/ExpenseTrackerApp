@@ -17,14 +17,11 @@ struct AddTransactionView: View {
     // Form State
     @State private var amount: String = ""
     @State private var selectedCategory: Category?
-    @State private var selectedAccount: Account?
     @State private var selectedDate = Date()
     @State private var payee: String = ""
     @State private var notes: String = ""
-    @State private var isRecurring: Bool = false
     @State private var isExpense: Bool = true
     @State private var showingCategoryPicker: Bool = false
-    @State private var showingAccountPicker: Bool = false
 
     // Computed Properties
     private var isEditMode: Bool {
@@ -33,7 +30,7 @@ struct AddTransactionView: View {
 
     private var isValidForm: Bool {
         let amountValue = Double(amount) ?? 0
-        return amountValue > 0 && selectedCategory != nil && selectedAccount != nil && !payee.isEmpty
+        return amountValue > 0 && selectedCategory != nil
     }
 
     // Initialize for add mode
@@ -48,14 +45,16 @@ struct AddTransactionView: View {
         _selectedDate = State(initialValue: transaction.date)
         _payee = State(initialValue: transaction.payee ?? "")
         _notes = State(initialValue: transaction.notes ?? "")
-        _isRecurring = State(initialValue: transaction.isRecurring)
         _isExpense = State(initialValue: transaction.isExpense)
     }
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: Constants.Layout.spacing) {
+                    // MARK: - Income/Expense Toggle (FR-2.1)
+                    typeToggle
+
                     // MARK: - Amount Input
                     amountInputSection
 
@@ -64,9 +63,6 @@ struct AddTransactionView: View {
 
                     // MARK: - Category Selection
                     categorySection
-
-                    // MARK: - Account Selection
-                    accountSection
 
                     // MARK: - Date Selection
                     dateSection
@@ -77,16 +73,13 @@ struct AddTransactionView: View {
                     // MARK: - Notes
                     notesSection
 
-                    // MARK: - Options
-                    optionsSection
-
                     // MARK: - Save Button
                     saveButton
                 }
-                .padding(16)
+                .padding(Constants.Layout.padding)
             }
             .background(Color.appBackground)
-            .navigationTitle("Add Expense")
+            .navigationTitle(isEditMode ? "Edit Transaction" : "Add Transaction")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -99,10 +92,40 @@ struct AddTransactionView: View {
             .sheet(isPresented: $showingCategoryPicker) {
                 CategoryPickerSheet(categories: viewModel.categories, selectedCategory: $selectedCategory)
             }
-            .sheet(isPresented: $showingAccountPicker) {
-                AccountPickerSheet(accounts: viewModel.accounts, selectedAccount: $selectedAccount)
+            .onAppear {
+                if let transaction = editingTransaction {
+                    // Pre-select category in edit mode
+                    selectedCategory = viewModel.category(for: transaction)
+                }
             }
         }
+    }
+
+    // MARK: - Type Toggle
+    private var typeToggle: some View {
+        HStack(spacing: 0) {
+            Button(action: { isExpense = true }) {
+                Text("Expense")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(isExpense ? .white : .appTextPrimary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(isExpense ? Color.appDanger : Color.clear)
+                    .cornerRadius(Constants.Layout.buttonCornerRadius)
+            }
+
+            Button(action: { isExpense = false }) {
+                Text("Income")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(!isExpense ? .white : .appTextPrimary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(!isExpense ? Color.appSuccess : Color.clear)
+                    .cornerRadius(Constants.Layout.buttonCornerRadius)
+            }
+        }
+        .background(Color.gray.opacity(0.15))
+        .cornerRadius(Constants.Layout.buttonCornerRadius)
     }
 
     // MARK: - Amount Input
@@ -209,64 +232,6 @@ struct AddTransactionView: View {
         }
     }
 
-    // MARK: - Account Section
-    private var accountSection: some View {
-        VStack(spacing: 8) {
-            Text("Account")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.appTextSecondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            Button(action: { showingAccountPicker = true }) {
-                HStack(spacing: 12) {
-                    if let account = selectedAccount {
-                        ZStack {
-                            Circle()
-                                .fill(account.type.color.opacity(0.15))
-                                .frame(width: 36, height: 36)
-
-                            Image(systemName: account.type.icon)
-                                .font(.system(size: 16))
-                                .foregroundColor(account.type.color)
-                        }
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(account.name)
-                                .font(.system(size: 15))
-                                .foregroundColor(.appTextPrimary)
-
-                            Text("Balance: \(account.formattedBalance)")
-                                .font(.system(size: 12))
-                                .foregroundColor(.appTextSecondary)
-                        }
-                    } else {
-                        ZStack {
-                            Circle()
-                                .fill(Color.gray.opacity(0.15))
-                                .frame(width: 36, height: 36)
-
-                            Image(systemName: "creditcard")
-                                .font(.system(size: 16))
-                                .foregroundColor(.gray)
-                        }
-
-                        Text("Select an account")
-                            .font(.system(size: 15))
-                            .foregroundColor(.appTextTertiary)
-                    }
-
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .foregroundColor(.appTextTertiary)
-                }
-                .padding(16)
-                .background(Color.appCardBackground)
-                .cornerRadius(Constants.Layout.cardCornerRadius)
-            }
-        }
-    }
-
     // MARK: - Date Section
     private var dateSection: some View {
         VStack(spacing: 8) {
@@ -275,7 +240,7 @@ struct AddTransactionView: View {
                 .foregroundColor(.appTextSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            DatePicker("", selection: $selectedDate, displayedComponents: .date)
+            DatePicker("", selection: $selectedDate, in: ...Date(), displayedComponents: [.date, .hourAndMinute])
                 .datePickerStyle(.compact)
                 .labelsHidden()
                 .padding(16)
@@ -288,7 +253,7 @@ struct AddTransactionView: View {
     // MARK: - Payee Section
     private var payeeSection: some View {
         VStack(spacing: 8) {
-            Text("Payee / Merchant")
+            Text("Payee (Optional)")
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(.appTextSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -327,54 +292,10 @@ struct AddTransactionView: View {
         }
     }
 
-    // MARK: - Options Section
-    private var optionsSection: some View {
-        VStack(spacing: 0) {
-            // Receipt Button
-            Button(action: {}) {
-                HStack {
-                    Image(systemName: "camera.fill")
-                        .foregroundColor(.appPrimary)
-
-                    Text("Attach Receipt")
-                        .font(.system(size: 15))
-                        .foregroundColor(.appTextPrimary)
-
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .foregroundColor(.appTextTertiary)
-                }
-                .padding(16)
-            }
-
-            Divider()
-                .padding(.horizontal, 16)
-
-            // Recurring Toggle
-            HStack {
-                Image(systemName: "arrow.triangle.2.circlepath")
-                    .foregroundColor(.appPrimary)
-
-                Text("Mark as Recurring")
-                    .font(.system(size: 15))
-                    .foregroundColor(.appTextPrimary)
-
-                Spacer()
-
-                Toggle("", isOn: $isRecurring)
-                    .labelsHidden()
-            }
-            .padding(16)
-        }
-        .background(Color.appCardBackground)
-        .cornerRadius(Constants.Layout.cardCornerRadius)
-    }
-
     // MARK: - Save Button
     private var saveButton: some View {
         Button(action: saveTransaction) {
-            Text("Save Transaction")
+            Text(isEditMode ? "Update Transaction" : "Save Transaction")
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
@@ -395,19 +316,29 @@ struct AddTransactionView: View {
     private func saveTransaction() {
         guard let amountValue = Double(amount),
               let category = selectedCategory,
-              let account = selectedAccount else { return }
+              amountValue > 0 else { return }
 
-        let transaction = Transaction(
-            amount: -amountValue, // Negative for expenses
-            categoryId: category.id,
-            accountId: account.id,
-            date: selectedDate,
-            payee: payee,
-            notes: notes.isEmpty ? nil : notes,
-            isRecurring: isRecurring
-        )
+        let finalAmount = isExpense ? -amountValue : amountValue
 
-        viewModel.addTransaction(transaction)
+        if let existing = editingTransaction {
+            var updated = existing
+            updated.amount = finalAmount
+            updated.categoryId = category.id
+            updated.date = selectedDate
+            updated.payee = payee.isEmpty ? nil : payee
+            updated.notes = notes.isEmpty ? nil : notes
+            viewModel.updateTransaction(updated)
+        } else {
+            let transaction = Transaction(
+                amount: finalAmount,
+                categoryId: category.id,
+                date: selectedDate,
+                payee: payee.isEmpty ? nil : payee,
+                notes: notes.isEmpty ? nil : notes
+            )
+            viewModel.addTransaction(transaction)
+        }
+
         dismiss()
     }
 }
@@ -421,86 +352,15 @@ struct CategoryPickerSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-                    ForEach(categories.filter { !$0.isSystem }) { category in
-                        CategoryIconView(
-                            category: category,
-                            isSelected: selectedCategory?.id == category.id
-                        )
-                        .onTapGesture {
-                            selectedCategory = category
-                            dismiss()
-                        }
-                    }
-                }
-                .padding()
+                CategoryPickerGrid(categories: categories, selectedCategory: $selectedCategory)
+                    .padding()
             }
             .background(Color.appBackground)
             .navigationTitle("Select Category")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
-            }
-        }
-        .presentationDetents([.medium, .large])
-    }
-}
-
-// MARK: - Account Picker Sheet
-struct AccountPickerSheet: View {
-    let accounts: [Account]
-    @Binding var selectedAccount: Account?
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            List {
-                ForEach(AccountType.allCases, id: \.self) { type in
-                    let accountsOfType = accounts.filter { $0.type == type && $0.isActive }
-                    if !accountsOfType.isEmpty {
-                        Section(header: Text(type.rawValue)) {
-                            ForEach(accountsOfType) { account in
-                                Button(action: {
-                                    selectedAccount = account
-                                    dismiss()
-                                }) {
-                                    HStack {
-                                        Image(systemName: account.type.icon)
-                                            .foregroundColor(account.type.color)
-                                            .frame(width: 24)
-
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text(account.name)
-                                                .foregroundColor(.appTextPrimary)
-
-                                            Text(account.formattedBalance)
-                                                .font(.system(size: 12))
-                                                .foregroundColor(account.isNegative ? .red : .appTextSecondary)
-                                        }
-
-                                        Spacer()
-
-                                        if selectedAccount?.id == account.id {
-                                            Image(systemName: "checkmark")
-                                                .foregroundColor(.appPrimary)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            .listStyle(.insetGrouped)
-            .navigationTitle("Select Account")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Cancel") {
+                    Button("Done") {
                         dismiss()
                     }
                 }

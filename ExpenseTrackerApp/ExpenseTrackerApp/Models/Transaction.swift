@@ -12,14 +12,9 @@ struct Transaction: Identifiable, Codable, Hashable {
     var id: UUID
     var amount: Double
     var categoryId: UUID
-    var accountId: UUID
     var date: Date
     var payee: String?
     var notes: String?
-    var tags: [String]
-    var receiptUrl: String?
-    var isRecurring: Bool
-    var location: String?
     var createdAt: Date
     var updatedAt: Date
 
@@ -27,26 +22,16 @@ struct Transaction: Identifiable, Codable, Hashable {
         id: UUID = UUID(),
         amount: Double,
         categoryId: UUID,
-        accountId: UUID,
         date: Date = Date(),
         payee: String? = nil,
-        notes: String? = nil,
-        tags: [String] = [],
-        receiptUrl: String? = nil,
-        isRecurring: Bool = false,
-        location: String? = nil
+        notes: String? = nil
     ) {
         self.id = id
         self.amount = amount
         self.categoryId = categoryId
-        self.accountId = accountId
         self.date = date
         self.payee = payee
         self.notes = notes
-        self.tags = tags
-        self.receiptUrl = receiptUrl
-        self.isRecurring = isRecurring
-        self.location = location
         self.createdAt = Date()
         self.updatedAt = Date()
     }
@@ -113,9 +98,7 @@ extension Transaction {
         } else if isThisMonth {
             return "This Month"
         } else {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "MMMM yyyy"
-            return formatter.string(from: date)
+            return "Older"
         }
     }
 }

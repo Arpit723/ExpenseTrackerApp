@@ -9,6 +9,33 @@ import Foundation
 import SwiftUI
 import Combine
 
+// MARK: - Transaction Filter
+enum TransactionFilter: CaseIterable {
+    case all, income, expenses
+
+    var title: String {
+        switch self {
+        case .all: return "All"
+        case .income: return "Income"
+        case .expenses: return "Expenses"
+        }
+    }
+}
+
+// MARK: - Transaction Sort
+enum TransactionSort: CaseIterable {
+    case dateDescending, dateAscending, amountDescending, amountAscending
+
+    var title: String {
+        switch self {
+        case .dateDescending: return "Newest First"
+        case .dateAscending: return "Oldest First"
+        case .amountDescending: return "Highest Amount"
+        case .amountAscending: return "Lowest Amount"
+        }
+    }
+}
+
 // MARK: - Transaction ViewModel
 @MainActor
 class TransactionViewModel: ObservableObject {
@@ -19,15 +46,13 @@ class TransactionViewModel: ObservableObject {
     @Published var selectedFilter: TransactionFilter = .all
     @Published var selectedSort: TransactionSort = .dateDescending
     @Published var isLoading: Bool = false
-    @Published var error: Error?
 
     // MARK: - Dependencies
-    private let dataService: MockDataService
+    private let dataService: DataService
     private var cancellables = Set<AnyCancellable>()
 
     // MARK: - Computed Properties
     var categories: [Category] { dataService.categories }
-    var accounts: [Account] { dataService.accounts }
 
     var totalExpensesThisMonth: Double {
         transactions
@@ -45,12 +70,6 @@ class TransactionViewModel: ObservableObject {
         totalIncomeThisMonth + totalExpensesThisMonth
     }
 
-    var todaySpending: Double {
-        transactions
-            .filter { $0.isToday && $0.isExpense }
-            .reduce(0) { $0 + $1.amount }
-    }
-
     var groupedTransactions: [(String, [Transaction])] {
         let grouped = Dictionary(grouping: filteredTransactions) { $0.dateGroupTitle }
         let groupOrder = ["Today", "Yesterday", "This Week", "This Month"]
@@ -65,7 +84,7 @@ class TransactionViewModel: ObservableObject {
     }
 
     // MARK: - Initialization
-    init(dataService: MockDataService = .shared) {
+    init(dataService: DataService = .shared) {
         self.dataService = dataService
         setupBindings()
         loadTransactions()
@@ -73,7 +92,6 @@ class TransactionViewModel: ObservableObject {
 
     // MARK: - Setup
     private func setupBindings() {
-        // Combine search, filter, and sort into a single pipeline
         Publishers.CombineLatest3($searchText, $selectedFilter, $selectedSort)
             .debounce(for: .milliseconds(100), scheduler: DispatchQueue.main)
             .sink { [weak self] _, _, _ in
@@ -92,7 +110,6 @@ class TransactionViewModel: ObservableObject {
 
     func refreshTransactions() async {
         isLoading = true
-        // Simulate network delay
         try? await Task.sleep(nanoseconds: 500_000_000)
         loadTransactions()
     }
@@ -101,39 +118,16 @@ class TransactionViewModel: ObservableObject {
     func addTransaction(_ transaction: Transaction) {
         dataService.addTransaction(transaction)
         loadTransactions()
-        // Post notification for other views to update
-        NotificationCenter.default.post(name: .transactionAdded, object: transaction)
     }
 
     func updateTransaction(_ transaction: Transaction) {
-        if let index = transactions.firstIndex(where: { $0.id == transaction.id }) {
-            // First, revert the old transaction's effect on account balance
-            if let oldTransaction = transactions.first(where: { $0.id == transaction.id }),
-               let accountIndex = dataService.accounts.firstIndex(where: { $0.id == oldTransaction.accountId }) {
-                dataService.accounts[accountIndex].balance -= oldTransaction.amount
-            }
-
-            // Update the transaction in data service
-            var updatedTransaction = transaction
-            updatedTransaction.updatedAt = Date()
-
-            // Apply new transaction's effect on account balance
-            if let accountIndex = dataService.accounts.firstIndex(where: { $0.id == transaction.accountId }) {
-                dataService.accounts[accountIndex].balance += transaction.amount
-            }
-
-            // Update in data service
-            dataService.transactions.removeAll { $0.id == transaction.id }
-            dataService.transactions.insert(updatedTransaction, at: 0)
-        }
+        dataService.updateTransaction(transaction)
         loadTransactions()
-        NotificationCenter.default.post(name: .transactionUpdated, object: transaction)
     }
 
     func deleteTransaction(_ transaction: Transaction) {
         dataService.deleteTransaction(transaction)
         loadTransactions()
-        NotificationCenter.default.post(name: .transactionDeleted, object: transaction)
     }
 
     func deleteTransactions(at offsets: IndexSet, in groupIndex: Int) {
@@ -148,17 +142,16 @@ class TransactionViewModel: ObservableObject {
     private func applyFilters() {
         var result = transactions
 
-        // Apply search filter
+        // Search across payee and notes (FR-2.5)
         if !searchText.isEmpty {
             result = result.filter { transaction in
                 let payeeMatch = transaction.payee?.localizedCaseInsensitiveContains(searchText) ?? false
                 let notesMatch = transaction.notes?.localizedCaseInsensitiveContains(searchText) ?? false
-                let categoryMatch = dataService.category(for: transaction.categoryId)?.name.localizedCaseInsensitiveContains(searchText) ?? false
-                return payeeMatch || notesMatch || categoryMatch
+                return payeeMatch || notesMatch
             }
         }
 
-        // Apply type filter
+        // Filter by type (FR-2.6)
         switch selectedFilter {
         case .all:
             break
@@ -166,11 +159,9 @@ class TransactionViewModel: ObservableObject {
             result = result.filter { $0.isExpense }
         case .income:
             result = result.filter { $0.isIncome }
-        case .transfers:
-            result = result.filter { dataService.category(for: $0.categoryId)?.name == "Transfer" }
         }
 
-        // Apply sort
+        // Sort
         switch selectedSort {
         case .dateDescending:
             result.sort { $0.date > $1.date }
@@ -188,37 +179,5 @@ class TransactionViewModel: ObservableObject {
     // MARK: - Helper Methods
     func category(for transaction: Transaction) -> Category? {
         dataService.category(for: transaction.categoryId)
-    }
-
-    func account(for transaction: Transaction) -> Account? {
-        dataService.account(for: transaction.accountId)
-    }
-
-    func transactionsForAccount(_ accountId: UUID) -> [Transaction] {
-        transactions.filter { $0.accountId == accountId }
-    }
-
-    func transactionsForCategory(_ categoryId: UUID) -> [Transaction] {
-        transactions.filter { $0.categoryId == categoryId }
-    }
-
-    // MARK: - Statistics
-    func spendingByCategory() -> [(Category, Double)] {
-        var spending: [UUID: Double] = [:]
-
-        for transaction in transactions where transaction.isExpense && transaction.date.isThisMonth {
-            spending[transaction.categoryId, default: 0] += abs(transaction.amount)
-        }
-
-        return spending.compactMap { (categoryId, amount) -> (Category, Double)? in
-            guard let category = dataService.category(for: categoryId) else { return nil }
-            return (category, amount)
-        }.sorted { $0.1 > $1.1 }
-    }
-
-    func averageDailySpending() -> Double {
-        let calendar = Calendar.current
-        let daysInMonth = calendar.dateComponents([.day], from: Date().startOfMonth, to: Date()).day ?? 1
-        return abs(totalExpensesThisMonth) / Double(max(daysInMonth, 1))
     }
 }

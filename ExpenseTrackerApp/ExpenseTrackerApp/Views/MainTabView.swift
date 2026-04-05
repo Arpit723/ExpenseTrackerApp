@@ -10,21 +10,16 @@ import SwiftUI
 struct MainTabView: View {
     @State private var selectedTab: Tab = .dashboard
     @State private var showingAddTransaction = false
+    @State private var showingSettings = false
 
     enum Tab: Int, CaseIterable {
         case dashboard = 0
         case transactions = 1
-        case budget = 2
-        case accounts = 3
-        case settings = 4
 
         var title: String {
             switch self {
             case .dashboard: return "Home"
             case .transactions: return "Transactions"
-            case .budget: return "Budget"
-            case .accounts: return "Accounts"
-            case .settings: return "Settings"
             }
         }
 
@@ -32,21 +27,7 @@ struct MainTabView: View {
             switch self {
             case .dashboard: return "house.fill"
             case .transactions: return "list.bullet.rectangle"
-            case .budget: return "chart.pie.fill"
-            case .accounts: return "creditcard.fill"
-            case .settings: return "gearshape.fill"
             }
-        }
-
-        var selectedIcon: String {
-            return icon
-        }
-    }
-
-    // MARK: - Tab Navigation Helper
-    private func navigateToTab(_ tab: Tab) {
-        withAnimation(.easeInOut(duration: 0.25)) {
-            selectedTab = tab
         }
     }
 
@@ -56,15 +37,9 @@ struct MainTabView: View {
             Group {
                 switch selectedTab {
                 case .dashboard:
-                    DashboardView(onNavigateToTab: navigateToTab)
+                    DashboardView()
                 case .transactions:
                     TransactionsView()
-                case .budget:
-                    BudgetView()
-                case .accounts:
-                    AccountsView()
-                case .settings:
-                    SettingsView()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -75,21 +50,20 @@ struct MainTabView: View {
 
                 HStack(spacing: 0) {
                     ForEach(Tab.allCases, id: \.self) { tab in
-                        if tab.rawValue == 2 {
-                            // Center FAB space
-                            Spacer()
-                        }
-
                         TabBarButton(
                             tab: tab,
                             isSelected: selectedTab == tab,
                             action: { selectedTab = tab }
                         )
-
-                        if tab.rawValue == 2 {
-                            Spacer()
-                        }
                     }
+
+                    // Settings button
+                    TabBarButton(
+                        icon: "gearshape.fill",
+                        title: "Settings",
+                        isSelected: false,
+                        action: { showingSettings = true }
+                    )
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
@@ -105,24 +79,47 @@ struct MainTabView: View {
         .sheet(isPresented: $showingAddTransaction) {
             AddTransactionView()
         }
+        .sheet(isPresented: $showingSettings) {
+            NavigationStack {
+                SettingsView()
+            }
+        }
     }
 }
 
 // MARK: - Tab Bar Button
 struct TabBarButton: View {
-    let tab: MainTabView.Tab
+    let tab: MainTabView.Tab?
+    let icon: String
+    let title: String
     var isSelected: Bool = false
     let action: () -> Void
+
+    init(tab: MainTabView.Tab, isSelected: Bool, action: @escaping () -> Void) {
+        self.tab = tab
+        self.icon = tab.icon
+        self.title = tab.title
+        self.isSelected = isSelected
+        self.action = action
+    }
+
+    init(icon: String, title: String, isSelected: Bool, action: @escaping () -> Void) {
+        self.tab = nil
+        self.icon = icon
+        self.title = title
+        self.isSelected = isSelected
+        self.action = action
+    }
 
     var body: some View {
         Button(action: action) {
             VStack(spacing: 4) {
-                Image(systemName: isSelected ? tab.selectedIcon : tab.icon)
+                Image(systemName: icon)
                     .font(.system(size: 22, weight: isSelected ? .semibold : .regular))
                     .foregroundColor(isSelected ? .appPrimary : .appTextTertiary)
                     .frame(height: 24)
 
-                Text(tab.title)
+                Text(title)
                     .font(.system(size: 10, weight: isSelected ? .semibold : .regular))
                     .foregroundColor(isSelected ? .appPrimary : .appTextTertiary)
             }

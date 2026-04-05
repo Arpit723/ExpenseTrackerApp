@@ -11,7 +11,7 @@ import SwiftUI
 struct Constants {
     // MARK: - App Info
     static let appName = "Expense Tracker"
-    static let appVersion = "1.0.0"
+    static let appVersion = "2.0.0"
     static let appBuildNumber = "1"
 
     // MARK: - Currency
@@ -21,12 +21,8 @@ struct Constants {
     // MARK: - Quick Amount Buttons
     static let quickAmounts: [Double] = [5, 10, 20, 50, 100]
 
-    // MARK: - Budget Thresholds
-    static let budgetWarningThreshold: Double = 75.0
-    static let budgetDangerThreshold: Double = 90.0
-
     // MARK: - Transaction Limits
-    static let recentTransactionsCount = 5
+    static let recentTransactionsCount = 10
     static let transactionsPerPage = 50
 
     // MARK: - Animation Durations
@@ -59,11 +55,6 @@ struct Constants {
         static let danger = "#FF3B30"
         static let background = "#F2F2F7"
     }
-
-    // MARK: - Number of Days
-    static let daysInWeek = 7
-    static let daysInMonth = 30
-    static let monthsInYear = 12
 }
 
 // MARK: - Notification Names
@@ -71,7 +62,4 @@ extension Notification.Name {
     static let transactionAdded = Notification.Name("transactionAdded")
     static let transactionUpdated = Notification.Name("transactionUpdated")
     static let transactionDeleted = Notification.Name("transactionDeleted")
-    static let accountBalanceChanged = Notification.Name("accountBalanceChanged")
-    static let budgetUpdated = Notification.Name("budgetUpdated")
-    static let goalProgressUpdated = Notification.Name("goalProgressUpdated")
 }

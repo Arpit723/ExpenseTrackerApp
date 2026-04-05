@@ -112,7 +112,7 @@ struct TransactionsView: View {
     // MARK: - Search and Filter
     private var searchAndFilterSection: some View {
         VStack(spacing: 12) {
-            // Search Bar
+            // Search Bar (FR-2.5)
             HStack(spacing: 12) {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(.appTextTertiary)
@@ -131,7 +131,7 @@ struct TransactionsView: View {
             .background(Color.gray.opacity(0.1))
             .cornerRadius(10)
 
-            // Filter Chips
+            // Filter Chips (FR-2.6: All / Income / Expense only)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(TransactionFilter.allCases, id: \.self) { filter in
@@ -194,7 +194,7 @@ struct TransactionsView: View {
         }
     }
 
-    // MARK: - Empty State
+    // MARK: - Empty State (NFR-3.3)
     private var emptyStateView: some View {
         VStack(spacing: 16) {
             Image(systemName: "tray")
@@ -244,15 +244,13 @@ struct TransactionsView: View {
                 ForEach(group.1) { transaction in
                     TransactionRow(
                         transaction: transaction,
-                        category: viewModel.category(for: transaction),
-                        account: viewModel.account(for: transaction)
+                        category: viewModel.category(for: transaction)
                     )
                     .contentShape(Rectangle())
                     .onTapGesture {
                         transactionToEdit = transaction
                     }
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        // Delete Action
                         Button(role: .destructive) {
                             transactionToDelete = transaction
                             showingDeleteConfirmation = true
@@ -260,7 +258,6 @@ struct TransactionsView: View {
                             Label("Delete", systemImage: "trash")
                         }
 
-                        // Edit Action
                         Button {
                             transactionToEdit = transaction
                         } label: {
@@ -300,20 +297,6 @@ struct FilterChip: View {
                     Capsule()
                         .fill(isSelected ? Color.appPrimary : Color.gray.opacity(0.15))
                 )
-        }
-    }
-}
-
-// MARK: - Transaction Sort Enum (Filter is in AccountViewModel)
-enum TransactionSort: CaseIterable {
-    case dateDescending, dateAscending, amountDescending, amountAscending
-
-    var title: String {
-        switch self {
-        case .dateDescending: return "Newest First"
-        case .dateAscending: return "Oldest First"
-        case .amountDescending: return "Highest Amount"
-        case .amountAscending: return "Lowest Amount"
         }
     }
 }

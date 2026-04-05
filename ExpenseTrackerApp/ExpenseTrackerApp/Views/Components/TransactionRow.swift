@@ -10,11 +10,10 @@ import SwiftUI
 struct TransactionRow: View {
     let transaction: Transaction
     let category: Category?
-    let account: Account?
 
     var body: some View {
         HStack(spacing: 12) {
-            // Category Icon
+            // Category Icon (FR-2.2)
             ZStack {
                 Circle()
                     .fill((category?.swiftUIColor ?? .gray).opacity(0.15))
@@ -25,41 +24,23 @@ struct TransactionRow: View {
                     .foregroundColor(category?.swiftUIColor ?? .gray)
             }
 
-            // Transaction Details
+            // Transaction Details (FR-2.2: payee or category name, date)
             VStack(alignment: .leading, spacing: 4) {
-                Text(transaction.payee ?? "Unknown")
+                Text(transaction.payee ?? category?.name ?? "Transaction")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(.appTextPrimary)
 
-                HStack(spacing: 4) {
-                    Text(category?.name ?? "Category")
-                        .font(.system(size: 13))
-                        .foregroundColor(.appTextSecondary)
-
-                    if let account = account {
-                        Text("•")
-                            .foregroundColor(.appTextTertiary)
-                        Text(account.name)
-                            .font(.system(size: 13))
-                            .foregroundColor(.appTextSecondary)
-                    }
-                }
+                Text(transaction.date.relativeString)
+                    .font(.system(size: 13))
+                    .foregroundColor(.appTextSecondary)
             }
 
             Spacer()
 
-            // Amount
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(transaction.displayAmount)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(transaction.amountColor)
-
-                if transaction.isRecurring {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                        .font(.system(size: 10))
-                        .foregroundColor(.appTextTertiary)
-                }
-            }
+            // Amount (FR-2.4: green for income, red for expense)
+            Text(transaction.displayAmount)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(transaction.amountColor)
         }
         .padding(.vertical, 8)
         .contentShape(Rectangle())
@@ -68,13 +49,12 @@ struct TransactionRow: View {
 
 // MARK: - Preview
 #Preview {
-    let mockData = MockDataService.shared
+    let dataService = DataService.shared
     VStack(spacing: 0) {
-        ForEach(mockData.transactions.prefix(3)) { transaction in
+        ForEach(dataService.transactions.prefix(3)) { transaction in
             TransactionRow(
                 transaction: transaction,
-                category: mockData.category(for: transaction.categoryId),
-                account: mockData.account(for: transaction.accountId)
+                category: dataService.category(for: transaction.categoryId)
             )
             Divider()
                 .padding(.leading, 56)

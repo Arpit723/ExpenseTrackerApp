@@ -66,10 +66,10 @@ struct CategoryIconView: View {
 
 // MARK: - Preview
 #Preview {
-    let mockData = MockDataService.shared
+    let dataService = DataService.shared
     CategoryPickerGrid(
-        categories: mockData.categories,
-        selectedCategory: .constant(mockData.categories.first)
+        categories: dataService.categories,
+        selectedCategory: .constant(dataService.categories.first)
     )
     .padding()
 }

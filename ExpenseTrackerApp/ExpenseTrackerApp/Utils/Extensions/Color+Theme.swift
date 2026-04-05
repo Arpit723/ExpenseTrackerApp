@@ -51,7 +51,7 @@ extension Color {
     }
 }
 
-// MARK: - App Theme Colors
+// MARK: - App Theme Colors (SRS Section 6.2)
 extension Color {
     static let appPrimary = Color(hex: "#007AFF") ?? .blue
     static let appSecondary = Color(hex: "#5856D6") ?? .purple
@@ -65,22 +65,6 @@ extension Color {
     static let appTextPrimary = Color(UIColor.label)
     static let appTextSecondary = Color(UIColor.secondaryLabel)
     static let appTextTertiary = Color(UIColor.tertiaryLabel)
-    static let appTextQuaternary = Color(UIColor.quaternaryLabel)
 
     static let appDivider = Color(UIColor.separator)
-}
-
-// MARK: - Category Colors
-extension Color {
-    static let categoryFood = Color(hex: "#FF6B6B") ?? .red
-    static let categoryTransport = Color(hex: "#4ECDC4") ?? .cyan
-    static let categoryShopping = Color(hex: "#45B7D1") ?? .blue
-    static let categoryEntertainment = Color(hex: "#96CEB4") ?? .green
-    static let categoryBills = Color(hex: "#FFEAA7") ?? .yellow
-    static let categoryHealthcare = Color(hex: "#DDA0DD") ?? .purple
-    static let categoryEducation = Color(hex: "#98D8C8") ?? .mint
-    static let categoryPersonal = Color(hex: "#F7DC6F") ?? .orange
-    static let categoryGifts = Color(hex: "#BB8FCE") ?? .purple
-    static let categoryGroceries = Color(hex: "#58D68D") ?? .green
-    static let categoryTravel = Color(hex: "#5DADE2") ?? .blue
 }

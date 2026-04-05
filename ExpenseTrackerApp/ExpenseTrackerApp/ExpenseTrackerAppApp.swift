@@ -9,8 +9,7 @@ import SwiftUI
 
 @main
 struct ExpenseTrackerAppApp: App {
-    // Initialize mock data service on app launch
-    @StateObject private var dataService = MockDataService.shared
+    @StateObject private var dataService = DataService.shared
 
     var body: some Scene {
         WindowGroup {

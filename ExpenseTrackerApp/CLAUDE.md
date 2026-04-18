@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Simple SwiftUI iOS app for adding and recording daily transactions (income/expenses). Focus is quick transaction entry and reliable record-keeping. Uses MVVM architecture with an in-memory data service. No persistence yet.
+Simple SwiftUI iOS app for adding and recording daily transactions (income/expenses) with Firebase Auth and Firestore persistence. Focus is quick transaction entry and reliable record-keeping. Uses MVVM architecture with protocol-based services for testability. Firebase Auth for user authentication, Firestore for per-user data persistence. Receipt photos deferred to future scope.
 
 **Scope: Transaction recording only.** No budgets, goals, recurring transactions, or multi-account management.
 
@@ -59,18 +59,21 @@ ExpenseTrackerApp/
 
 ### Data Flow
 
-1. **App entry** (`ExpenseTrackerAppApp`): creates data service as `@StateObject`, injects via `.environmentObject()`
-2. **ViewModels**: receive data service via `@EnvironmentObject`; own `@Published` display state
-3. **Views**: observe `@StateObject` ViewModels
+1. **App entry** (`ExpenseTrackerAppApp`): checks Firebase Auth state, shows AuthGateView or MainTabView
+2. **AuthViewModel**: observes Firebase Auth state listener, publishes `AuthState` (.loading, .authenticated, .unauthenticated)
+3. **ViewModels**: receive data service via dependency injection; own `@Published` display state
+4. **Views**: observe `@StateObject` ViewModels
 
 ### Data Service
 
-Central in-memory store for `transactions`, `categories`, and `userProfile`.
+`FirestoreDataService` (production) implements `DataServiceProtocol` with Firebase Firestore. Replaces in-memory `DataService` at injection point. `DataService` kept for testing only.
 
 Key behaviors:
-- CRUD operations on transactions
+- Async CRUD operations on transactions
 - Computed totals: `totalBalance`, `totalIncomeThisMonth`, `totalExpensesThisMonth`
 - `groupedTransactions()` returns date-grouped list
+- Pagination: Dashboard loads 10 recent, Transaction list uses 50-item pages
+- Firestore is source of truth for currency/theme (section 7.7 of SRS)
 
 ### Notification-Based Updates
 
@@ -84,6 +87,41 @@ Defined in `Constants.swift` as `Notification.Name` extensions:
 
 ViewModels listen to these and recalculate `@Published` properties.
 
+## Test-Driven Development (TDD) — MANDATORY
+
+**Write tests BEFORE writing implementation code. As much as possible.**
+
+Every feature, bug fix, or refactoring must follow this cycle:
+
+1. **RED** — Write a failing test that describes the desired behavior
+2. **GREEN** — Write the minimum implementation code to make the test pass
+3. **REFACTOR** — Clean up the code while keeping tests green
+
+### Rules
+
+- **Never implement a feature without a test first.** If a ViewModel method needs to exist, write a test that calls it first.
+- **Before writing any important feature, write unit tests first.** No exceptions for significant features like auth, data persistence, transaction CRUD, or any Firebase integration.
+- **Never skip the RED step.** Run the test and confirm it fails before writing implementation.
+- **Protocol mocks come first.** Before implementing a service, define its protocol and write mock-based tests.
+- **Coverage target: 80%+** on ViewModels and Services (measured by `xcodebuild test`).
+- **All new files must have corresponding test files.** One test file per source file minimum.
+- **Use `/xctest-generator` skill** when generating test scaffolding.
+
+### When TDD applies
+
+| Scenario | Action |
+|----------|--------|
+| New ViewModel method | Write test for expected output given input, then implement |
+| New Service method | Write test with mock dependency, then implement |
+| Bug fix | Write test that reproduces the bug (must fail), then fix |
+| Refactoring | Tests must already exist and be green before refactoring |
+| Model changes | Write Codable round-trip and computed property tests first |
+
+### Exceptions
+
+- Pure SwiftUI view layout changes (no logic) may skip TDD
+- Quick one-line fixes where writing a test would be disproportionate (use judgment)
+
 ## Coding Conventions
 
 - **SwiftUI + Combine**: use `@Published` for reactive state; no external dependencies
@@ -92,6 +130,18 @@ ViewModels listen to these and recalculate `@Published` properties.
 - **Colors**: use theme colors from `Color+Theme.swift` (`Color.appPrimary`, `Color.appSuccess`, etc.), never hardcode hex in views
 - **Layout constants**: use `Constants.Layout.*` and `Constants.Animation.*`, avoid magic numbers
 - **Date formatting**: use `Date+Extensions` helpers, keep formatters static for performance
+- **Design tokens**: follow typography scale from SRS section 6.5 (displayLarge 36pt bold, titleLarge 28pt bold, etc.)
+- **Motion**: use `Constants.Animation.*` values, always respect `@Environment(\.accessibilityReduceMotion)`
+- **Accessibility**: all interactive elements need `accessibilityLabel`, income/expense colors must have +/- prefix, minimum 44pt touch targets
+
+## Design System
+
+Defined in `docs/SRS.md` sections 6.5-6.9:
+- **Typography**: SF Pro system font, scale from 12pt (caption) to 48pt (amount input)
+- **Motion**: 0.1s-0.35s durations, spring/easeInOut curves, reduced motion support required
+- **Components**: 16pt corner radius for cards/inputs/buttons, no decorative shadows, rely on background contrast
+- **Spacing**: 4pt base unit grid (xs=4, sm=8, md=16, lg=20, xl=24)
+- **Accessibility**: VoiceOver labels, Dynamic Type xSmall-xxxLarge, WCAG AA contrast, colorblind-safe patterns
 
 ## Key Model Semantics
 
@@ -175,18 +225,17 @@ A simple SwiftUI iOS expense tracker that currently records daily transactions (
 - Not configured for App Store distribution yet (no archive/scheme settings for release)
 - No CI/CD pipeline configured
 ## Data Persistence
-- In-memory only. `DataService` is a singleton with `@Published` arrays
-- All data lost on app termination
-- `@AppStorage` persists only theme and currency preference strings to UserDefaults
-- Models conform to `Codable` but no encode/decode calls exist yet
-- Ready for future persistence (Core Data, SwiftData, or file-based) since all models are `Codable`
-- `DataService.shared` singleton pattern makes it a single point to add persistence
+- **Target**: Firebase Firestore per-user storage (`users/{uid}`, `users/{uid}/transactions/{txId}`)
+- **Current**: In-memory `DataService` singleton with `@Published` arrays (to be replaced by FirestoreDataService)
+- `@AppStorage` caches currency/theme locally; Firestore is source of truth
+- Models conform to `Codable` for Firestore serialization
+- Offline: Firestore SDK caches locally, queues writes for sync
 ## Key Architecture Decisions
 - **MVVM pattern**: `@MainActor ObservableObject` ViewModels with `@Published` properties
 - **No external dependencies**: Entirely Apple frameworks
 - **SwiftUI only**: No UIKit/Storyboard usage
 - **Reactive updates**: Combine-based `NotificationCenter` subscriptions in ViewModels
-- **Singleton data layer**: `DataService.shared` accessed by all ViewModels
+- **Protocol-based data layer**: `DataServiceProtocol` with async methods; `FirestoreDataService` in production, `DataService` for testing
 - **Swift previews**: `#Preview` macros used in views for Xcode Canvas previews
 <!-- GSD:stack-end -->
 
@@ -339,13 +388,14 @@ A simple SwiftUI iOS expense tracker that currently records daily transactions (
 | `@StateObject` | ViewModels owned by views |
 | `@Published` | ViewModel → View reactivity |
 | `@EnvironmentObject` | DataService injected from app root (not currently used by views directly) |
-| `@AppStorage` | Currency, theme persisted to UserDefaults |
+| `@AppStorage` | Currency, theme cached locally (Firestore is source of truth) |
 | `NotificationCenter` | Cross-ViewModel updates (DataService → DashboardViewModel) |
 | `Combine` | Debounced filter pipeline in TransactionViewModel |
 ## 6. Error Handling
-- No error states on DataService CRUD operations
-- ViewModels have `isLoading` but no `error` property (except TransactionViewModel which declares but never sets it)
-- View-layer error handling: alert for delete confirmation
+- **AppError** enum (SRS section 7.6): unified error type with auth, network, data, validation cases
+- Error flow: Service throws AppError → ViewModel catches, sets `@Published var error: AppError?` → View shows `.alert(item:)`
+- All ViewModels include `@Published var error: AppError?` and `@Published var isLoading: Bool`
+- Firebase errors mapped to AppError in service layer
 - Form validation: `isValidForm` computed property gates save button
 ## 7. Cross-Cutting Concerns
 ### 7.1 Theming

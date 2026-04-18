@@ -129,7 +129,6 @@ secrets/
 Credentials/
 
 # Firebase
-GoogleService-Info.plist
 *.firebase*
 
 # Build artifacts
@@ -149,3 +148,53 @@ GoogleService-Info.plist
 *.tmp
 *.temp
 *.bak
+
+# GSD / gstack managed skills (installed via /gstack-upgrade)
+.claude/skills/autoplan/
+.claude/skills/benchmark/
+.claude/skills/browse/
+.claude/skills/canary/
+.claude/skills/careful/
+.claude/skills/checkpoint/
+.claude/skills/codex/
+.claude/skills/connect-chrome/
+.claude/skills/cso/
+.claude/skills/design-consultation/
+.claude/skills/design-html/
+.claude/skills/design-review/
+.claude/skills/design-shotgun/
+.claude/skills/devex-review/
+.claude/skills/document-release/
+.claude/skills/freeze/
+.claude/skills/gstack-upgrade/
+.claude/skills/gstack/
+.claude/skills/guard/
+.claude/skills/health/
+.claude/skills/investigate/
+.claude/skills/land-and-deploy/
+.claude/skills/learn/
+.claude/skills/office-hours/
+.claude/skills/open-gstack-browser/
+.claude/skills/pair-agent/
+.claude/skills/plan-ceo-review/
+.claude/skills/plan-design-review/
+.claude/skills/plan-devex-review/
+.claude/skills/plan-eng-review/
+.claude/skills/qa-only/
+.claude/skills/qa/
+.claude/skills/retro/
+.claude/skills/review/
+.claude/skills/setup-browser-cookies/
+.claude/skills/setup-deploy/
+.claude/skills/ship/
+.claude/skills/unfreeze/
+.claude/skills/claude-api/
+skills-lock.json
+skills/
+.agents/
+
+# Planning
+.planning/
+
+# GSD state
+.gstack/

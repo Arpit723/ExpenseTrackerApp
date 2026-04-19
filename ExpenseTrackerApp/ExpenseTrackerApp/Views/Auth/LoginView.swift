@@ -8,19 +8,21 @@
 import SwiftUI
 
 struct LoginView: View {
+    @ObservedObject var authViewModel: AuthViewModel
     @State private var email: String = ""
     @State private var password: String = ""
     @State private var showPassword: Bool = false
-    @State private var isLoading: Bool = false
+    @State private var showForgotPassword: Bool = false
 
     var onSignUpTap: (() -> Void)?
-    var onLoginSuccess: (() -> Void)?
 
     private var isFormValid: Bool {
-        !email.trimmingCharacters(in: .whitespaces).isEmpty
-        && email.contains("@")
-        && !password.isEmpty
-        && password.count >= 6
+        let trimmedEmail = email.trimmingCharacters(in: .whitespaces)
+        return !trimmedEmail.isEmpty
+            && trimmedEmail.contains("@")
+            && !password.isEmpty
+            && password.count >= 6
+            && isAlphanumeric(password)
     }
 
     var body: some View {
@@ -52,6 +54,19 @@ struct LoginView: View {
         }
         .background(Color.appBackground)
         .toolbarVisibility(.hidden, for: .navigationBar)
+        .alert(
+            "Error",
+            isPresented: .constant(authViewModel.error != nil),
+            actions: {
+                Button("OK") { authViewModel.clearError() }
+            },
+            message: {
+                Text(authViewModel.error?.localizedDescription ?? "")
+            }
+        )
+        .sheet(isPresented: $showForgotPassword) {
+            forgotPasswordSheet
+        }
     }
 
     // MARK: - Header
@@ -144,7 +159,7 @@ struct LoginView: View {
     // MARK: - Forgot Password
     private var forgotPasswordButton: some View {
         Button(action: {
-            // TODO: Implement forgot password flow
+            showForgotPassword = true
         }) {
             Text("Forgot Password?")
                 .font(.system(size: 14, weight: .medium))
@@ -156,22 +171,15 @@ struct LoginView: View {
     // MARK: - Login Button
     private var loginButton: some View {
         Button(action: {
-            isLoading = true
-            // TODO: Implement login with Firebase Auth
-            // Static: simulate login success after delay
-            Task {
-                try? await Task.sleep(nanoseconds: 1_000_000_000)
-                isLoading = false
-                onLoginSuccess?()
-            }
+            authViewModel.login(email: email, password: password)
         }) {
             HStack(spacing: 8) {
-                if isLoading {
+                if authViewModel.isLoading {
                     ProgressView()
                         .tint(.white)
                 }
 
-                Text(isLoading ? "Signing In..." : "Login")
+                Text(authViewModel.isLoading ? "Signing In..." : "Login")
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(.white)
             }
@@ -189,7 +197,7 @@ struct LoginView: View {
             )
             .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
         }
-        .disabled(!isFormValid || isLoading)
+        .disabled(!isFormValid || authViewModel.isLoading)
         .padding(.top, 8)
     }
 
@@ -208,11 +216,78 @@ struct LoginView: View {
         }
         .padding(.top, 16)
     }
+
+    // MARK: - Forgot Password Sheet
+    private var forgotPasswordSheet: some View {
+        NavigationStack {
+            VStack(spacing: Constants.Layout.spacing) {
+                Text("Enter your email address and we'll send you a link to reset your password.")
+                    .font(.system(size: 15))
+                    .foregroundStyle(Color.appTextSecondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                HStack(spacing: 12) {
+                    Image(systemName: "envelope")
+                        .foregroundStyle(Color.appTextTertiary)
+                        .frame(width: 20)
+
+                    TextField("Enter your email", text: $email)
+                        .font(.system(size: 15))
+                        .textContentType(.emailAddress)
+                        .keyboardType(.emailAddress)
+                        .textInputAutocapitalization(.never)
+                }
+                .padding(16)
+                .background(Color.appCardBackground)
+                .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
+
+                Button(action: {
+                    authViewModel.resetPassword(email: email)
+                    showForgotPassword = false
+                }) {
+                    Text("Send Reset Link")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(
+                            LinearGradient(
+                                gradient: Gradient(colors: [Color.appPrimary, Color.appSecondary]),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
+                }
+                .disabled(email.trimmingCharacters(in: .whitespaces).isEmpty || !email.contains("@"))
+
+                Spacer()
+            }
+            .padding(.horizontal, Constants.Layout.padding)
+            .padding(.top, 20)
+            .background(Color.appBackground)
+            .navigationTitle("Reset Password")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cancel") { showForgotPassword = false }
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+
+    // MARK: - Helpers
+    private func isAlphanumeric(_ string: String) -> Bool {
+        let hasLetter = string.unicodeScalars.contains { CharacterSet.letters.contains($0) }
+        let hasDigit = string.unicodeScalars.contains { CharacterSet.decimalDigits.contains($0) }
+        return hasLetter && hasDigit
+    }
 }
 
 // MARK: - Preview
 #Preview {
     NavigationStack {
-        LoginView()
+        LoginView(authViewModel: AuthViewModel(authService: LocalAuthService()))
     }
 }

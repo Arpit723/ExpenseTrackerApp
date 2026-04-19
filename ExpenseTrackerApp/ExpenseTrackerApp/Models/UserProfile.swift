@@ -40,15 +40,30 @@ struct UserPreferences: Codable, Hashable {
 
 struct UserProfile: Identifiable, Codable, Hashable {
     var id: UUID
+    var uid: String?
+    var email: String?
+    var fullName: String?
+    var birthDate: Date?
+    var phone: String?
     var preferences: UserPreferences
     var createdAt: Date
     var updatedAt: Date
 
     init(
         id: UUID = UUID(),
+        uid: String? = nil,
+        email: String? = nil,
+        fullName: String? = nil,
+        birthDate: Date? = nil,
+        phone: String? = nil,
         preferences: UserPreferences = UserPreferences()
     ) {
         self.id = id
+        self.uid = uid
+        self.email = email
+        self.fullName = fullName
+        self.birthDate = birthDate
+        self.phone = phone
         self.preferences = preferences
         self.createdAt = Date()
         self.updatedAt = Date()

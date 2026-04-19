@@ -6,39 +6,55 @@
 //
 
 import SwiftUI
+import FirebaseCore
 
 @main
 struct ExpenseTrackerAppApp: App {
     @StateObject private var dataService = DataService.shared
-    @State private var isAuthenticated: Bool = false
+    @StateObject private var authViewModel: AuthViewModel
+
+    init() {
+        let authService: any AuthServiceProtocol
+        if let plistPath = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") {
+            FirebaseApp.configure()
+            authService = FirebaseAuthService()
+        } else {
+            authService = LocalAuthService()
+        }
+        _authViewModel = StateObject(wrappedValue: AuthViewModel(authService: authService))
+    }
 
     var body: some Scene {
         WindowGroup {
-            if isAuthenticated {
-                MainTabView()
-                    .environmentObject(dataService)
-            } else {
-                AuthGateView(onLoginSuccess: { isAuthenticated = true })
+            Group {
+                switch authViewModel.authState {
+                case .authenticated:
+                    MainTabView()
+                        .environmentObject(dataService)
+                case .unauthenticated, .loading:
+                    AuthGateView(authViewModel: authViewModel)
+                }
             }
+            .animation(.easeInOut(duration: Constants.Animation.default), value: authViewModel.isAuthenticated)
         }
     }
 }
 
 // MARK: - Auth Gate (manages Login ↔ Register navigation)
 struct AuthGateView: View {
-    let onLoginSuccess: () -> Void
+    @ObservedObject var authViewModel: AuthViewModel
     @State private var showRegister = false
 
     var body: some View {
         NavigationStack {
             LoginView(
-                onSignUpTap: { showRegister = true },
-                onLoginSuccess: onLoginSuccess
+                authViewModel: authViewModel,
+                onSignUpTap: { showRegister = true }
             )
             .navigationDestination(isPresented: $showRegister) {
                 RegisterView(
-                    onLoginTap: { showRegister = false },
-                    onRegisterSuccess: onLoginSuccess
+                    authViewModel: authViewModel,
+                    onLoginTap: { showRegister = false }
                 )
             }
         }

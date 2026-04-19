@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct RegisterView: View {
+    @ObservedObject var authViewModel: AuthViewModel
     @State private var fullName: String = ""
     @State private var birthDate = Calendar.current.date(byAdding: .year, value: -18, to: Date()) ?? Date()
     @State private var email: String = ""
@@ -16,17 +17,16 @@ struct RegisterView: View {
     @State private var confirmPassword: String = ""
     @State private var showPassword: Bool = false
     @State private var showConfirmPassword: Bool = false
-    @State private var isLoading: Bool = false
 
     var onLoginTap: (() -> Void)?
-    var onRegisterSuccess: (() -> Void)?
 
     private var isFormValid: Bool {
         !fullName.trimmingCharacters(in: .whitespaces).isEmpty
         && email.contains("@")
-        && !phoneNumber.isEmpty
+        && !email.isEmpty
         && phoneNumber.count >= 7
         && password.count >= 6
+        && isAlphanumeric(password)
         && password == confirmPassword
     }
 
@@ -77,6 +77,16 @@ struct RegisterView: View {
                 .foregroundStyle(Color.appPrimary)
             }
         }
+        .alert(
+            "Error",
+            isPresented: .constant(authViewModel.error != nil),
+            actions: {
+                Button("OK") { authViewModel.clearError() }
+            },
+            message: {
+                Text(authViewModel.error?.localizedDescription ?? "")
+            }
+        )
     }
 
     // MARK: - Header
@@ -200,11 +210,11 @@ struct RegisterView: View {
                     .frame(width: 20)
 
                 if showPassword {
-                    TextField("Min 6 characters", text: $password)
+                    TextField("Min 6 characters, letters + numbers", text: $password)
                         .font(.system(size: 15))
                         .textContentType(.newPassword)
                 } else {
-                    SecureField("Min 6 characters", text: $password)
+                    SecureField("Min 6 characters, letters + numbers", text: $password)
                         .font(.system(size: 15))
                         .textContentType(.newPassword)
                 }
@@ -251,7 +261,6 @@ struct RegisterView: View {
             .background(Color.appCardBackground)
             .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
 
-            // Password mismatch hint
             if !confirmPassword.isEmpty && password != confirmPassword {
                 Text("Passwords do not match")
                     .font(.system(size: 12))
@@ -263,22 +272,21 @@ struct RegisterView: View {
     // MARK: - Sign Up Button
     private var signUpButton: some View {
         Button(action: {
-            isLoading = true
-            // TODO: Implement registration with Firebase Auth
-            // Static: simulate success after delay
-            Task {
-                try? await Task.sleep(nanoseconds: 1_000_000_000)
-                isLoading = false
-                onRegisterSuccess?()
-            }
+            authViewModel.register(
+                email: email,
+                password: password,
+                name: fullName,
+                birthDate: birthDate,
+                phone: phoneNumber
+            )
         }) {
             HStack(spacing: 8) {
-                if isLoading {
+                if authViewModel.isLoading {
                     ProgressView()
                         .tint(.white)
                 }
 
-                Text(isLoading ? "Creating Account..." : "Sign Up")
+                Text(authViewModel.isLoading ? "Creating Account..." : "Sign Up")
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(.white)
             }
@@ -296,7 +304,7 @@ struct RegisterView: View {
             )
             .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
         }
-        .disabled(!isFormValid || isLoading)
+        .disabled(!isFormValid || authViewModel.isLoading)
         .padding(.top, 8)
     }
 
@@ -315,11 +323,18 @@ struct RegisterView: View {
         }
         .padding(.top, 16)
     }
+
+    // MARK: - Helpers
+    private func isAlphanumeric(_ string: String) -> Bool {
+        let hasLetter = string.unicodeScalars.contains { CharacterSet.letters.contains($0) }
+        let hasDigit = string.unicodeScalars.contains { CharacterSet.decimalDigits.contains($0) }
+        return hasLetter && hasDigit
+    }
 }
 
 // MARK: - Preview
 #Preview {
     NavigationStack {
-        RegisterView()
+        RegisterView(authViewModel: AuthViewModel(authService: MockAuthService()))
     }
 }

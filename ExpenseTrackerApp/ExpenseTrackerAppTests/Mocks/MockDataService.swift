@@ -34,7 +34,7 @@ class MockDataService: ObservableObject, DataServiceProtocol {
     }
 
     // MARK: - Load Data
-    func loadData() {
+    func loadData() async throws {
         // No-op for mock. Tests populate data directly.
     }
 
@@ -58,11 +58,11 @@ class MockDataService: ObservableObject, DataServiceProtocol {
     }
 
     // MARK: - CRUD Operations
-    func addTransaction(_ transaction: Transaction) {
+    func addTransaction(_ transaction: Transaction) async throws {
         transactions.insert(transaction, at: 0)
     }
 
-    func updateTransaction(_ transaction: Transaction) {
+    func updateTransaction(_ transaction: Transaction) async throws {
         if let index = transactions.firstIndex(where: { $0.id == transaction.id }) {
             var updated = transaction
             updated.updatedAt = Date()
@@ -70,7 +70,7 @@ class MockDataService: ObservableObject, DataServiceProtocol {
         }
     }
 
-    func deleteTransaction(_ transaction: Transaction) {
+    func deleteTransaction(_ transaction: Transaction) async throws {
         transactions.removeAll { $0.id == transaction.id }
     }
 }

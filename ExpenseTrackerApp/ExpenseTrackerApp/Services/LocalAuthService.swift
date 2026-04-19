@@ -1,71 +1,47 @@
 //
-//  MockAuthService.swift
-//  ExpenseTrackerAppTests
+//  LocalAuthService.swift
+//  ExpenseTrackerApp
 //
-//  Created by Arpit Parekh on 05/04/26.
+//  Temporary in-memory auth service for development.
+//  Replaced by FirebaseAuthService in Phase 2.
 //
 
 import Foundation
-import Combine
-@testable import ExpenseTrackerApp
 
-// MARK: - Mock Auth Service
 @MainActor
-class MockAuthService: ObservableObject, AuthServiceProtocol {
+class LocalAuthService: ObservableObject, AuthServiceProtocol {
     @Published var authState: AuthState = .unauthenticated
-
-    var shouldFail: Bool = false
 
     private var authStateListener: ((AuthState) -> Void)?
 
-    // MARK: - Register
     func register(email: String, password: String, name: String, birthDate: Date, phone: String) async throws -> UserProfile {
-        if shouldFail {
-            throw AppError.auth(.invalidCredentials)
-        }
         let profile = UserProfile(preferences: UserPreferences())
         authState = .authenticated(profile)
         authStateListener?(authState)
         return profile
     }
 
-    // MARK: - Login
     func login(email: String, password: String) async throws -> UserProfile {
-        if shouldFail {
-            throw AppError.auth(.invalidCredentials)
-        }
         let profile = UserProfile(preferences: UserPreferences())
         authState = .authenticated(profile)
         authStateListener?(authState)
         return profile
     }
 
-    // MARK: - Logout
     func logout() async throws {
-        if shouldFail {
-            throw AppError.auth(.sessionExpired)
-        }
         authState = .unauthenticated
         authStateListener?(authState)
     }
 
-    // MARK: - Delete Account
     func deleteAccount() async throws {
-        if shouldFail {
-            throw AppError.auth(.sessionExpired)
-        }
         authState = .unauthenticated
         authStateListener?(authState)
     }
 
-    // MARK: - Reset Password
     func resetPassword(email: String) async throws {
-        if shouldFail {
-            throw AppError.auth(.userNotFound)
-        }
+        // No-op for local service
     }
 
-    // MARK: - Auth State Listener
     func addAuthStateListener(_ listener: @escaping (AuthState) -> Void) {
         authStateListener = listener
         listener(authState)

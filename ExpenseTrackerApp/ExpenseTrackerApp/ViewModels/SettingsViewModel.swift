@@ -19,6 +19,9 @@ class SettingsViewModel: ObservableObject {
     // MARK: - Dependencies
     private let dataService: any DataServiceProtocol
 
+    // MARK: - Published Properties
+    @Published var error: AppError?
+
     // MARK: - Computed Properties
     var currentTheme: AppTheme {
         get { AppTheme(rawValue: appTheme) ?? .system }

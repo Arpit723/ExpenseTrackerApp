@@ -17,6 +17,7 @@ class DashboardViewModel: ObservableObject {
     @Published var totalExpensesThisMonth: Double = 0
     @Published var recentTransactions: [Transaction] = []
     @Published var categories: [UUID: Category] = [:]
+    @Published var error: AppError?
 
     // MARK: - Dependencies
     private let dataService: any DataServiceProtocol
@@ -62,6 +63,15 @@ class DashboardViewModel: ObservableObject {
     func refresh() async {
         try? await Task.sleep(nanoseconds: 300_000_000)
         refreshData()
+    }
+
+    func loadData() async {
+        do {
+            try await dataService.loadData()
+            refreshData()
+        } catch {
+            self.error = AppError.from(firebaseError: error)
+        }
     }
 
     // MARK: - Helper Methods

@@ -18,14 +18,18 @@ class DataService: ObservableObject, DataServiceProtocol {
     @Published var userProfile: UserProfile?
 
     private init() {
-        loadData()
+        loadFromMemory()
     }
 
     // MARK: - Load Data
-    func loadData() {
+    private func loadFromMemory() {
         loadCategories()
         loadTransactions()
         loadUserProfile()
+    }
+
+    func loadData() async throws {
+        loadFromMemory()
     }
 
     // MARK: - Categories
@@ -202,12 +206,12 @@ class DataService: ObservableObject, DataServiceProtocol {
     }
 
     // MARK: - CRUD Operations
-    func addTransaction(_ transaction: Transaction) {
+    func addTransaction(_ transaction: Transaction) async throws {
         transactions.insert(transaction, at: 0)
         NotificationCenter.default.post(name: .transactionAdded, object: transaction)
     }
 
-    func updateTransaction(_ transaction: Transaction) {
+    func updateTransaction(_ transaction: Transaction) async throws {
         if let index = transactions.firstIndex(where: { $0.id == transaction.id }) {
             var updated = transaction
             updated.updatedAt = Date()
@@ -216,7 +220,7 @@ class DataService: ObservableObject, DataServiceProtocol {
         NotificationCenter.default.post(name: .transactionUpdated, object: transaction)
     }
 
-    func deleteTransaction(_ transaction: Transaction) {
+    func deleteTransaction(_ transaction: Transaction) async throws {
         transactions.removeAll { $0.id == transaction.id }
         NotificationCenter.default.post(name: .transactionDeleted, object: transaction)
     }

@@ -18,10 +18,10 @@ protocol DataServiceProtocol: ObservableObject {
     var totalExpensesThisMonth: Double { get }
     var totalIncomeThisMonth: Double { get }
 
-    func loadData()
+    func loadData() async throws
     func category(for id: UUID) -> Category?
     func groupedTransactions() -> [(String, [Transaction])]
-    func addTransaction(_ transaction: Transaction)
-    func updateTransaction(_ transaction: Transaction)
-    func deleteTransaction(_ transaction: Transaction)
+    func addTransaction(_ transaction: Transaction) async throws
+    func updateTransaction(_ transaction: Transaction) async throws
+    func deleteTransaction(_ transaction: Transaction) async throws
 }

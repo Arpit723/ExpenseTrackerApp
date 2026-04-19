@@ -19,39 +19,39 @@ final class ProtocolSmokeTests: XCTestCase {
         XCTAssertEqual(viewModel.totalBalance, 0)
     }
 
-    func testMockDataServiceTotalBalance() {
+    func testMockDataServiceTotalBalance() async throws {
         let mockDataService = MockDataService()
         let categoryId = ExpenseTrackerApp.Category.defaultCategories[0].id
-        mockDataService.addTransaction(Transaction(amount: -50.0, categoryId: categoryId))
-        mockDataService.addTransaction(Transaction(amount: 100.0, categoryId: ExpenseTrackerApp.Category.defaultCategories[10].id))
+        try await mockDataService.addTransaction(Transaction(amount: -50.0, categoryId: categoryId))
+        try await mockDataService.addTransaction(Transaction(amount: 100.0, categoryId: ExpenseTrackerApp.Category.defaultCategories[10].id))
         let viewModel = DashboardViewModel(dataService: mockDataService)
         XCTAssertEqual(viewModel.totalBalance, 50.0)
     }
 
-    func testMockDataServiceCRUD() {
+    func testMockDataServiceCRUD() async throws {
         let mockDataService = MockDataService()
         let categoryId = ExpenseTrackerApp.Category.defaultCategories[0].id
         let transaction = Transaction(amount: -25.0, categoryId: categoryId)
 
         // Add
-        mockDataService.addTransaction(transaction)
+        try await mockDataService.addTransaction(transaction)
         XCTAssertEqual(mockDataService.transactions.count, 1)
 
         // Update
         var updated = transaction
         updated.amount = -30.0
-        mockDataService.updateTransaction(updated)
+        try await mockDataService.updateTransaction(updated)
         XCTAssertEqual(mockDataService.transactions.first?.amount, -30.0)
 
         // Delete
-        mockDataService.deleteTransaction(transaction)
+        try await mockDataService.deleteTransaction(transaction)
         XCTAssertTrue(mockDataService.transactions.isEmpty)
     }
 
-    func testMockDataServiceGroupedTransactions() {
+    func testMockDataServiceGroupedTransactions() async throws {
         let mockDataService = MockDataService()
         let categoryId = ExpenseTrackerApp.Category.defaultCategories[0].id
-        mockDataService.addTransaction(Transaction(amount: -10.0, categoryId: categoryId))
+        try await mockDataService.addTransaction(Transaction(amount: -10.0, categoryId: categoryId))
         let grouped = mockDataService.groupedTransactions()
         XCTAssertFalse(grouped.isEmpty)
     }
@@ -70,67 +70,37 @@ final class ProtocolSmokeTests: XCTestCase {
         XCTAssertEqual(mockAuth.authState, .unauthenticated)
     }
 
-    func testMockAuthServiceRegisterSuccess() async {
+    func testMockAuthServiceRegisterSuccess() async throws {
         let mockAuth = MockAuthService()
-        let expectation = XCTestExpectation(description: "Register completes")
-
-        mockAuth.register(email: "test@test.com", password: "password", name: "Test", gender: "Male", phone: "1234567890") { result in
-            if case .success(let profile) = result {
-                XCTAssertNotNil(profile)
-            } else {
-                XCTFail("Expected success")
-            }
-            expectation.fulfill()
-        }
-        await fulfillment(of: [expectation], timeout: 2.0)
+        let profile = try await mockAuth.register(email: "test@test.com", password: "password", name: "Test", birthDate: Date(), phone: "1234567890")
+        XCTAssertNotNil(profile)
+        XCTAssertEqual(mockAuth.authState, .authenticated(profile))
     }
 
-    func testMockAuthServiceLoginSuccess() async {
+    func testMockAuthServiceLoginSuccess() async throws {
         let mockAuth = MockAuthService()
-        let expectation = XCTestExpectation(description: "Login completes")
-
-        mockAuth.login(email: "test@test.com", password: "password") { result in
-            if case .success = result {
-                // Expected
-            } else {
-                XCTFail("Expected success")
-            }
-            expectation.fulfill()
-        }
-        await fulfillment(of: [expectation], timeout: 2.0)
+        let profile = try await mockAuth.login(email: "test@test.com", password: "password")
+        XCTAssertEqual(mockAuth.authState, .authenticated(profile))
     }
 
-    func testMockAuthServiceLogout() async {
+    func testMockAuthServiceLogout() async throws {
         let mockAuth = MockAuthService()
         // First login
-        let loginExpectation = XCTestExpectation(description: "Login completes")
-        mockAuth.login(email: "test@test.com", password: "password") { _ in loginExpectation.fulfill() }
-        await fulfillment(of: [loginExpectation], timeout: 2.0)
-
+        _ = try await mockAuth.login(email: "test@test.com", password: "password")
         // Then logout
-        let logoutExpectation = XCTestExpectation(description: "Logout completes")
-        mockAuth.logout { result in
-            if case .success = result { /* expected */ }
-            else { XCTFail("Expected success") }
-            logoutExpectation.fulfill()
-        }
-        await fulfillment(of: [logoutExpectation], timeout: 2.0)
+        try await mockAuth.logout()
+        XCTAssertEqual(mockAuth.authState, .unauthenticated)
     }
 
     func testMockAuthServiceRegisterFailure() async {
         let mockAuth = MockAuthService()
         mockAuth.shouldFail = true
-        let expectation = XCTestExpectation(description: "Register fails")
-
-        mockAuth.register(email: "test@test.com", password: "password", name: "Test", gender: "Male", phone: "1234567890") { result in
-            if case .failure = result {
-                // Expected
-            } else {
-                XCTFail("Expected failure")
-            }
-            expectation.fulfill()
+        do {
+            _ = try await mockAuth.register(email: "test@test.com", password: "password", name: "Test", birthDate: Date(), phone: "1234567890")
+            XCTFail("Should have thrown")
+        } catch {
+            // Expected
         }
-        await fulfillment(of: [expectation], timeout: 2.0)
     }
 
     func testMockAuthServiceStateListener() {
@@ -142,5 +112,29 @@ final class ProtocolSmokeTests: XCTestCase {
         XCTAssertEqual(receivedStates.count, 1)
         XCTAssertEqual(receivedStates.first, .unauthenticated)
         mockAuth.removeAuthStateListener()
+    }
+
+    func testMockAuthServiceDeleteAccount() async throws {
+        let mockAuth = MockAuthService()
+        _ = try await mockAuth.login(email: "test@test.com", password: "password")
+        try await mockAuth.deleteAccount()
+        XCTAssertEqual(mockAuth.authState, .unauthenticated)
+    }
+
+    func testMockAuthServiceResetPassword() async throws {
+        let mockAuth = MockAuthService()
+        try await mockAuth.resetPassword(email: "test@test.com")
+        // Should not throw
+    }
+
+    func testMockAuthServiceResetPasswordFailure() async {
+        let mockAuth = MockAuthService()
+        mockAuth.shouldFail = true
+        do {
+            try await mockAuth.resetPassword(email: "test@test.com")
+            XCTFail("Should have thrown")
+        } catch {
+            // Expected
+        }
     }
 }

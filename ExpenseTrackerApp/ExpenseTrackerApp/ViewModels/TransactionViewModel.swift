@@ -46,6 +46,7 @@ class TransactionViewModel: ObservableObject {
     @Published var selectedFilter: TransactionFilter = .all
     @Published var selectedSort: TransactionSort = .dateDescending
     @Published var isLoading: Bool = false
+    @Published var error: AppError?
 
     // MARK: - Dependencies
     private let dataService: any DataServiceProtocol
@@ -116,18 +117,36 @@ class TransactionViewModel: ObservableObject {
 
     // MARK: - CRUD Operations
     func addTransaction(_ transaction: Transaction) {
-        dataService.addTransaction(transaction)
-        loadTransactions()
+        Task {
+            do {
+                try await dataService.addTransaction(transaction)
+                loadTransactions()
+            } catch {
+                self.error = AppError.from(firebaseError: error)
+            }
+        }
     }
 
     func updateTransaction(_ transaction: Transaction) {
-        dataService.updateTransaction(transaction)
-        loadTransactions()
+        Task {
+            do {
+                try await dataService.updateTransaction(transaction)
+                loadTransactions()
+            } catch {
+                self.error = AppError.from(firebaseError: error)
+            }
+        }
     }
 
     func deleteTransaction(_ transaction: Transaction) {
-        dataService.deleteTransaction(transaction)
-        loadTransactions()
+        Task {
+            do {
+                try await dataService.deleteTransaction(transaction)
+                loadTransactions()
+            } catch {
+                self.error = AppError.from(firebaseError: error)
+            }
+        }
     }
 
     func deleteTransactions(at offsets: IndexSet, in groupIndex: Int) {

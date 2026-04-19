@@ -78,4 +78,30 @@ class DashboardViewModel: ObservableObject {
     func category(for id: UUID) -> Category? {
         categories[id] ?? dataService.category(for: id)
     }
+
+    // MARK: - Dashboard Features (Phase 4)
+
+    var todaySpending: Double {
+        dataService.transactions
+            .filter { Calendar.current.isDateInToday($0.date) && $0.isExpense }
+            .reduce(0) { $0 + abs($1.amount) }
+    }
+
+    var hasTransactions: Bool {
+        !dataService.transactions.isEmpty
+    }
+
+    var categorySpending: [(category: Category, amount: Double, percentage: Double)] {
+        let thisMonthExpenses = dataService.transactions.filter { $0.date.isThisMonth && $0.isExpense }
+        let total = thisMonthExpenses.reduce(0.0) { $0 + abs($1.amount) }
+        guard total > 0 else { return [] }
+
+        let grouped = Dictionary(grouping: thisMonthExpenses) { $0.categoryId }
+        return grouped.map { categoryId, txns in
+            let amount = txns.reduce(0.0) { $0 + abs($1.amount) }
+            let cat = dataService.category(for: categoryId)
+            return (category: cat ?? Category.defaultCategories[0], amount: amount, percentage: (amount / total) * 100)
+        }
+        .sorted { $0.amount > $1.amount }
+    }
 }

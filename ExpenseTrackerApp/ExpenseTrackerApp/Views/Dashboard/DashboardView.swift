@@ -18,11 +18,25 @@ struct DashboardView: View {
                     // MARK: - Total Balance Card
                     balanceCard
 
+                    // MARK: - Today's Spending Card
+                    if viewModel.todaySpending > 0 {
+                        todaySpendingCard
+                    }
+
                     // MARK: - Monthly Summary
                     monthlySummarySection
 
-                    // MARK: - Recent Transactions
-                    recentTransactionsSection
+                    // MARK: - Category Spending
+                    if !viewModel.categorySpending.isEmpty {
+                        categorySpendingSection
+                    }
+
+                    // MARK: - Recent Transactions or Welcome Card
+                    if !viewModel.hasTransactions {
+                        welcomeCard
+                    } else {
+                        recentTransactionsSection
+                    }
                 }
                 .padding(.horizontal, Constants.Layout.padding)
                 .padding(.top, Constants.Layout.smallSpacing)
@@ -104,6 +118,105 @@ struct DashboardView: View {
             }
         }
         .padding(16)
+        .background(Color.appCardBackground)
+        .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
+        .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+    }
+
+    // MARK: - Today's Spending Card
+    private var todaySpendingCard: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Today's Spending")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color.appTextSecondary)
+                Text(viewModel.todaySpending.formattedAsCurrency())
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundStyle(Color.appDanger)
+            }
+            Spacer()
+            Image(systemName: "flame.fill")
+                .font(.system(size: 28))
+                .foregroundStyle(Color.appDanger.opacity(0.6))
+        }
+        .padding(16)
+        .background(Color.appCardBackground)
+        .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
+        .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+    }
+
+    // MARK: - Category Spending Section
+    private var categorySpendingSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Spending by Category")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(Color.appTextPrimary)
+
+            ForEach(viewModel.categorySpending, id: \.category.id) { item in
+                HStack(spacing: 12) {
+                    Image(systemName: item.category.icon)
+                        .font(.system(size: 16))
+                        .foregroundStyle(Color(hex: item.category.color) ?? .gray)
+                        .frame(width: 28)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(item.category.name)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(Color.appTextPrimary)
+                        Text(String(format: "%.0f%%", item.percentage))
+                            .font(.system(size: 12))
+                            .foregroundStyle(Color.appTextSecondary)
+                    }
+
+                    Spacer()
+
+                    Text(item.amount.formattedAsCurrency())
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color.appTextPrimary)
+                }
+            }
+        }
+        .padding(16)
+        .background(Color.appCardBackground)
+        .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
+        .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+    }
+
+    // MARK: - Welcome Card
+    private var welcomeCard: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 40))
+                .foregroundStyle(Color.appPrimary)
+
+            Text("Welcome to Expense Tracker!")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(Color.appTextPrimary)
+
+            Text("Start tracking your spending by adding your first transaction.")
+                .font(.system(size: 15))
+                .foregroundStyle(Color.appTextSecondary)
+                .multilineTextAlignment(.center)
+
+            Button {
+                showingAddTransaction = true
+            } label: {
+                Text("Add Your First Transaction")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(
+                        LinearGradient(
+                            gradient: Gradient(colors: [Color.appPrimary, Color.appSecondary]),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
+            }
+        }
+        .padding(24)
         .background(Color.appCardBackground)
         .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
         .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)

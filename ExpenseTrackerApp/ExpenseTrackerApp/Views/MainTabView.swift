@@ -71,9 +71,16 @@ struct MainTabView: View {
                 .background(Color.appCardBackground)
             }
 
-            // MARK: - Floating Add Button
-            FloatingAddButton(action: { showingAddTransaction = true })
-                .position(x: UIScreen.main.bounds.width / 2, y: UIScreen.main.bounds.height - 70)
+            // MARK: - Floating Add Button (bottom-right, above tab bar)
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    FloatingAddButton(action: { showingAddTransaction = true })
+                        .padding(.trailing, 20)
+                        .padding(.bottom, 100)
+                }
+            }
         }
         .ignoresSafeArea(.keyboard)
         .sheet(isPresented: $showingAddTransaction) {
@@ -116,17 +123,17 @@ struct TabBarButton: View {
             VStack(spacing: 4) {
                 Image(systemName: icon)
                     .font(.system(size: 22, weight: isSelected ? .semibold : .regular))
-                    .foregroundColor(isSelected ? .appPrimary : .appTextTertiary)
+                    .foregroundStyle(isSelected ? Color.appPrimary : Color.appTextTertiary)
                     .frame(height: 24)
 
                 Text(title)
                     .font(.system(size: 10, weight: isSelected ? .semibold : .regular))
-                    .foregroundColor(isSelected ? .appPrimary : .appTextTertiary)
+                    .foregroundStyle(isSelected ? Color.appPrimary : Color.appTextTertiary)
             }
             .frame(maxWidth: .infinity)
             .contentShape(Rectangle())
         }
-        .buttonStyle(PlainButtonStyle())
+        .buttonStyle(.plain)
     }
 }
 

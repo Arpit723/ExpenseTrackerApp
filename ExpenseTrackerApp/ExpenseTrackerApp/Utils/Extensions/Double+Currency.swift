@@ -8,11 +8,18 @@
 import Foundation
 
 extension Double {
-    func formattedAsCurrency(currencyCode: String = "USD") -> String {
+    // MARK: - Static NumberFormatter (avoid per-call allocation)
+
+    private static let currencyFormatter: NumberFormatter = {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
-        formatter.currencyCode = currencyCode
-        return formatter.string(from: NSNumber(value: self)) ?? "$0.00"
+        formatter.currencyCode = "USD"
+        return formatter
+    }()
+
+    func formattedAsCurrency(currencyCode: String = "USD") -> String {
+        Self.currencyFormatter.currencyCode = currencyCode
+        return Self.currencyFormatter.string(from: NSNumber(value: self)) ?? "$0.00"
     }
 
     var absValue: Double {

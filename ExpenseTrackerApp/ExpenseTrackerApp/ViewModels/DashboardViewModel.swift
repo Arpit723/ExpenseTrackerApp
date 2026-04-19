@@ -31,20 +31,16 @@ class DashboardViewModel: ObservableObject {
 
     // MARK: - Setup
     private func setupBindings() {
-        NotificationCenter.default.publisher(for: .transactionAdded)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.refreshData() }
-            .store(in: &cancellables)
-
-        NotificationCenter.default.publisher(for: .transactionDeleted)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.refreshData() }
-            .store(in: &cancellables)
-
-        NotificationCenter.default.publisher(for: .transactionUpdated)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.refreshData() }
-            .store(in: &cancellables)
+        // Listen to all transaction change notifications with a single merged pipeline
+        // to avoid double-refreshing (the view also has .onReceive — those are now removed)
+        Publishers.Merge3(
+            NotificationCenter.default.publisher(for: .transactionAdded),
+            NotificationCenter.default.publisher(for: .transactionDeleted),
+            NotificationCenter.default.publisher(for: .transactionUpdated)
+        )
+        .receive(on: DispatchQueue.main)
+        .sink { [weak self] _ in self?.refreshData() }
+        .store(in: &cancellables)
     }
 
     // MARK: - Data Loading
@@ -54,10 +50,10 @@ class DashboardViewModel: ObservableObject {
         totalExpensesThisMonth = dataService.totalExpensesThisMonth
 
         // Recent transactions (last 10)
-        recentTransactions = dataService.transactions
+        recentTransactions = Array(dataService.transactions
             .sorted { $0.date > $1.date }
             .prefix(Constants.recentTransactionsCount)
-            .map { $0 }
+        )
 
         // Build lookup dictionary
         categories = Dictionary(uniqueKeysWithValues: dataService.categories.map { ($0.id, $0) })

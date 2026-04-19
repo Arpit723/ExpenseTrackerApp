@@ -11,6 +11,10 @@ struct CategoryPickerGrid: View {
     let categories: [Category]
     @Binding var selectedCategory: Category?
 
+    private var nonSystemCategories: [Category] {
+        categories.filter { !$0.isSystem }
+    }
+
     private let columns = [
         GridItem(.flexible()),
         GridItem(.flexible()),
@@ -20,16 +24,16 @@ struct CategoryPickerGrid: View {
 
     var body: some View {
         LazyVGrid(columns: columns, spacing: 12) {
-            ForEach(categories.filter { !$0.isSystem }) { category in
-                CategoryIconView(
-                    category: category,
-                    isSelected: selectedCategory?.id == category.id
-                )
-                .onTapGesture {
-                    withAnimation(.spring(response: 0.3)) {
-                        selectedCategory = category
-                    }
+            ForEach(nonSystemCategories) { category in
+                Button {
+                    selectedCategory = category
+                } label: {
+                    CategoryIconView(
+                        category: category,
+                        isSelected: selectedCategory?.id == category.id
+                    )
                 }
+                .buttonStyle(.plain)
             }
         }
     }
@@ -49,7 +53,7 @@ struct CategoryIconView: View {
 
                 Image(systemName: category.icon)
                     .font(.system(size: size * 0.35, weight: .medium))
-                    .foregroundColor(isSelected ? .white : category.swiftUIColor)
+                    .foregroundStyle(isSelected ? .white : category.swiftUIColor)
             }
             .overlay(
                 Circle()
@@ -58,7 +62,7 @@ struct CategoryIconView: View {
 
             Text(category.name)
                 .font(.system(size: 11, weight: isSelected ? .semibold : .regular))
-                .foregroundColor(isSelected ? .appTextPrimary : .appTextSecondary)
+                .foregroundStyle(isSelected ? Color.appTextPrimary : Color.appTextSecondary)
                 .lineLimit(1)
         }
     }

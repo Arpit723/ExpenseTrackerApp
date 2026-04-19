@@ -30,13 +30,13 @@ struct CurrencyPickerView: View {
                 Section {
                     HStack(spacing: 8) {
                         Image(systemName: "magnifyingglass")
-                            .foregroundColor(.appTextTertiary)
+                            .foregroundStyle(Color.appTextTertiary)
                         TextField("Search currencies...", text: $searchText)
                             .font(.system(size: 15))
                         if !searchText.isEmpty {
                             Button(action: { searchText = "" }) {
                                 Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(.appTextTertiary)
+                                    .foregroundStyle(Color.appTextTertiary)
                             }
                         }
                     }
@@ -52,25 +52,25 @@ struct CurrencyPickerView: View {
                             HStack(spacing: 12) {
                                 Text(currency.symbol)
                                     .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(.appPrimary)
+                                    .foregroundStyle(Color.appPrimary)
                                     .frame(width: 44, height: 32)
                                     .background(Color.appPrimary.opacity(0.1))
-                                    .cornerRadius(8)
+                                    .clipShape(.rect(cornerRadius: 8))
 
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(currency.name)
                                         .font(.system(size: 15))
-                                        .foregroundColor(.appTextPrimary)
+                                        .foregroundStyle(Color.appTextPrimary)
                                     Text(currency.code)
                                         .font(.system(size: 12))
-                                        .foregroundColor(.appTextSecondary)
+                                        .foregroundStyle(Color.appTextSecondary)
                                 }
 
                                 Spacer()
 
                                 if selectedCode == currency.code {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.appPrimary)
+                                        .foregroundStyle(Color.appPrimary)
                                 }
                             }
                         }

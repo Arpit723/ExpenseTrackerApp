@@ -23,16 +23,16 @@ struct QuickActionButton: View {
 
                     Image(systemName: icon)
                         .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(color)
+                        .foregroundStyle(color)
                 }
 
                 Text(title)
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.appTextPrimary)
+                    .foregroundStyle(Color.appTextPrimary)
             }
             .frame(maxWidth: .infinity)
         }
-        .buttonStyle(PlainButtonStyle())
+        .buttonStyle(.plain)
     }
 }
 
@@ -43,13 +43,11 @@ struct QuickAmountButton: View {
 
     var body: some View {
         Button(action: {
-            withAnimation(.spring(response: 0.3)) {
-                selectedAmount = amount
-            }
+            selectedAmount = amount
         }) {
             Text("$\(Int(amount))")
                 .font(.system(size: 14, weight: selectedAmount == amount ? .semibold : .regular))
-                .foregroundColor(selectedAmount == amount ? .white : .appPrimary)
+                .foregroundStyle(selectedAmount == amount ? .white : Color.appPrimary)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
                 .background(
@@ -57,7 +55,7 @@ struct QuickAmountButton: View {
                         .fill(selectedAmount == amount ? Color.appPrimary : Color.appPrimary.opacity(0.1))
                 )
         }
-        .buttonStyle(PlainButtonStyle())
+        .buttonStyle(.plain)
     }
 }
 
@@ -81,10 +79,10 @@ struct FloatingAddButton: View {
 
                 Image(systemName: "plus")
                     .font(.system(size: 24, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundStyle(.white)
             }
         }
-        .buttonStyle(PlainButtonStyle())
+        .buttonStyle(.plain)
     }
 }
 

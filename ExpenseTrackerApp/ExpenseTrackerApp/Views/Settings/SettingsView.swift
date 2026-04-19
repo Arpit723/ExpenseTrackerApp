@@ -32,22 +32,22 @@ struct SettingsView: View {
                     } label: {
                         HStack {
                             Image(systemName: "dollarsign.circle")
-                                .foregroundColor(.appPrimary)
+                                .foregroundStyle(Color.appPrimary)
                                 .frame(width: 24)
 
                             Text("Currency")
                                 .font(.system(size: 15))
-                                .foregroundColor(.appTextPrimary)
+                                .foregroundStyle(Color.appTextPrimary)
 
                             Spacer()
 
                             Text(viewModel.currentCurrency.code)
                                 .font(.system(size: 15))
-                                .foregroundColor(.appTextSecondary)
+                                .foregroundStyle(Color.appTextSecondary)
 
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 12))
-                                .foregroundColor(.appTextTertiary)
+                                .foregroundStyle(Color.appTextTertiary)
                         }
                     }
                 }
@@ -60,24 +60,24 @@ struct SettingsView: View {
                         }) {
                             HStack {
                                 Image(systemName: theme.icon)
-                                    .foregroundColor(.appPrimary)
+                                    .foregroundStyle(Color.appPrimary)
                                     .frame(width: 24)
 
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(theme.rawValue)
                                         .font(.system(size: 15))
-                                        .foregroundColor(.appTextPrimary)
+                                        .foregroundStyle(Color.appTextPrimary)
 
                                     Text(themeDescription(for: theme))
                                         .font(.system(size: 12))
-                                        .foregroundColor(.appTextSecondary)
+                                        .foregroundStyle(Color.appTextSecondary)
                                 }
 
                                 Spacer()
 
                                 if viewModel.currentTheme == theme {
                                     Image(systemName: "checkmark")
-                                        .foregroundColor(.appPrimary)
+                                        .foregroundStyle(Color.appPrimary)
                                 }
                             }
                         }
@@ -88,7 +88,7 @@ struct SettingsView: View {
                 Section {
                     HStack {
                         Image(systemName: "info.circle")
-                            .foregroundColor(.appPrimary)
+                            .foregroundStyle(Color.appPrimary)
                             .frame(width: 24)
 
                         Text("Version")
@@ -98,7 +98,7 @@ struct SettingsView: View {
 
                         Text("\(Constants.appVersion)")
                             .font(.system(size: 15))
-                            .foregroundColor(.appTextSecondary)
+                            .foregroundStyle(Color.appTextSecondary)
                     }
                 }
             }

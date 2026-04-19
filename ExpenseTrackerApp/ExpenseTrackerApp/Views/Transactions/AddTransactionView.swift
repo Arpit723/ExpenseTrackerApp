@@ -86,7 +86,7 @@ struct AddTransactionView: View {
                     Button("Cancel") {
                         dismiss()
                     }
-                    .foregroundColor(.appTextSecondary)
+                    .foregroundStyle(Color.appTextSecondary)
                 }
             }
             .sheet(isPresented: $showingCategoryPicker) {
@@ -107,25 +107,25 @@ struct AddTransactionView: View {
             Button(action: { isExpense = true }) {
                 Text("Expense")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(isExpense ? .white : .appTextPrimary)
+                    .foregroundStyle(isExpense ? .white : Color.appTextPrimary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                     .background(isExpense ? Color.appDanger : Color.clear)
-                    .cornerRadius(Constants.Layout.buttonCornerRadius)
+                    .clipShape(.rect(cornerRadius: Constants.Layout.buttonCornerRadius))
             }
 
             Button(action: { isExpense = false }) {
                 Text("Income")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(!isExpense ? .white : .appTextPrimary)
+                    .foregroundStyle(!isExpense ? .white : Color.appTextPrimary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                     .background(!isExpense ? Color.appSuccess : Color.clear)
-                    .cornerRadius(Constants.Layout.buttonCornerRadius)
+                    .clipShape(.rect(cornerRadius: Constants.Layout.buttonCornerRadius))
             }
         }
         .background(Color.gray.opacity(0.15))
-        .cornerRadius(Constants.Layout.buttonCornerRadius)
+        .clipShape(.rect(cornerRadius: Constants.Layout.buttonCornerRadius))
     }
 
     // MARK: - Amount Input
@@ -133,24 +133,24 @@ struct AddTransactionView: View {
         VStack(spacing: 8) {
             Text("Amount")
                 .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.appTextSecondary)
+                .foregroundStyle(Color.appTextSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text("$")
                     .font(.system(size: 40, weight: .bold))
-                    .foregroundColor(amount.isEmpty ? .appTextTertiary : .appTextPrimary)
+                    .foregroundStyle(amount.isEmpty ? Color.appTextTertiary : Color.appTextPrimary)
 
                 TextField("0.00", text: $amount)
                     .font(.system(size: 48, weight: .bold))
-                    .foregroundColor(.appTextPrimary)
+                    .foregroundStyle(Color.appTextPrimary)
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.center)
             }
             .padding(.vertical, 20)
             .frame(maxWidth: .infinity)
             .background(Color.appCardBackground)
-            .cornerRadius(Constants.Layout.cardCornerRadius)
+            .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
         }
     }
 
@@ -159,7 +159,7 @@ struct AddTransactionView: View {
         VStack(spacing: 8) {
             Text("Quick Amounts")
                 .font(.system(size: 13))
-                .foregroundColor(.appTextSecondary)
+                .foregroundStyle(Color.appTextSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack(spacing: 8) {
@@ -169,11 +169,11 @@ struct AddTransactionView: View {
                     }) {
                         Text("$\(Int(value))")
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.appPrimary)
+                            .foregroundStyle(Color.appPrimary)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
                             .background(Color.appPrimary.opacity(0.1))
-                            .cornerRadius(8)
+                            .clipShape(.rect(cornerRadius: 8))
                     }
                 }
             }
@@ -185,7 +185,7 @@ struct AddTransactionView: View {
         VStack(spacing: 8) {
             Text("Category")
                 .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.appTextSecondary)
+                .foregroundStyle(Color.appTextSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             Button(action: { showingCategoryPicker = true }) {
@@ -198,12 +198,12 @@ struct AddTransactionView: View {
 
                             Image(systemName: category.icon)
                                 .font(.system(size: 16))
-                                .foregroundColor(category.swiftUIColor)
+                                .foregroundStyle(category.swiftUIColor)
                         }
 
                         Text(category.name)
                             .font(.system(size: 15))
-                            .foregroundColor(.appTextPrimary)
+                            .foregroundStyle(Color.appTextPrimary)
                     } else {
                         ZStack {
                             Circle()
@@ -212,22 +212,22 @@ struct AddTransactionView: View {
 
                             Image(systemName: "questionmark.circle")
                                 .font(.system(size: 16))
-                                .foregroundColor(.gray)
+                                .foregroundStyle(.gray)
                         }
 
                         Text("Select a category")
                             .font(.system(size: 15))
-                            .foregroundColor(.appTextTertiary)
+                            .foregroundStyle(Color.appTextTertiary)
                     }
 
                     Spacer()
 
                     Image(systemName: "chevron.right")
-                        .foregroundColor(.appTextTertiary)
+                        .foregroundStyle(Color.appTextTertiary)
                 }
                 .padding(16)
                 .background(Color.appCardBackground)
-                .cornerRadius(Constants.Layout.cardCornerRadius)
+                .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
             }
         }
     }
@@ -237,7 +237,7 @@ struct AddTransactionView: View {
         VStack(spacing: 8) {
             Text("Date")
                 .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.appTextSecondary)
+                .foregroundStyle(Color.appTextSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             DatePicker("", selection: $selectedDate, in: ...Date(), displayedComponents: [.date, .hourAndMinute])
@@ -246,7 +246,7 @@ struct AddTransactionView: View {
                 .padding(16)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color.appCardBackground)
-                .cornerRadius(Constants.Layout.cardCornerRadius)
+                .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
         }
     }
 
@@ -255,19 +255,19 @@ struct AddTransactionView: View {
         VStack(spacing: 8) {
             Text("Payee (Optional)")
                 .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.appTextSecondary)
+                .foregroundStyle(Color.appTextSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack(spacing: 12) {
                 Image(systemName: "person.circle")
-                    .foregroundColor(.appTextTertiary)
+                    .foregroundStyle(Color.appTextTertiary)
 
                 TextField("e.g., Starbucks, Amazon", text: $payee)
                     .font(.system(size: 15))
             }
             .padding(16)
             .background(Color.appCardBackground)
-            .cornerRadius(Constants.Layout.cardCornerRadius)
+            .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
         }
     }
 
@@ -276,19 +276,19 @@ struct AddTransactionView: View {
         VStack(spacing: 8) {
             Text("Notes (Optional)")
                 .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.appTextSecondary)
+                .foregroundStyle(Color.appTextSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack(spacing: 12) {
                 Image(systemName: "note.text")
-                    .foregroundColor(.appTextTertiary)
+                    .foregroundStyle(Color.appTextTertiary)
 
                 TextField("Add a note...", text: $notes)
                     .font(.system(size: 15))
             }
             .padding(16)
             .background(Color.appCardBackground)
-            .cornerRadius(Constants.Layout.cardCornerRadius)
+            .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
         }
     }
 
@@ -297,7 +297,7 @@ struct AddTransactionView: View {
         Button(action: saveTransaction) {
             Text(isEditMode ? "Update Transaction" : "Save Transaction")
                 .font(.system(size: 17, weight: .semibold))
-                .foregroundColor(.white)
+                .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
                 .background(
@@ -307,7 +307,7 @@ struct AddTransactionView: View {
                         endPoint: .trailing
                     )
                 )
-                .cornerRadius(Constants.Layout.cardCornerRadius)
+                .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
         }
         .disabled(!isValidForm)
     }

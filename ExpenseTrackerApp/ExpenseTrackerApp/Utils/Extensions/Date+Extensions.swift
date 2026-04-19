@@ -60,10 +60,13 @@ extension Date {
         return Calendar.current.date(from: components) ?? self
     }
 
+    // MARK: - Static DateFormatters (avoid per-call allocation)
+
+    private static let sharedFormatter = DateFormatter()
+
     func formatted(with format: String) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = format
-        return formatter.string(from: self)
+        Self.sharedFormatter.dateFormat = format
+        return Self.sharedFormatter.string(from: self)
     }
 
     var shortDate: String {

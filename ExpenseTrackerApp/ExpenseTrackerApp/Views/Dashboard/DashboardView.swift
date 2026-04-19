@@ -40,22 +40,12 @@ struct DashboardView: View {
                         showingAddTransaction = true
                     } label: {
                         Image(systemName: "plus")
-                            .foregroundColor(.appPrimary)
+                            .foregroundStyle(Color.appPrimary)
                     }
                 }
             }
             .sheet(isPresented: $showingAddTransaction) {
                 AddTransactionView()
-                    .onDisappear { viewModel.refreshData() }
-            }
-            .onReceive(NotificationCenter.default.publisher(for: .transactionAdded)) { _ in
-                viewModel.refreshData()
-            }
-            .onReceive(NotificationCenter.default.publisher(for: .transactionDeleted)) { _ in
-                viewModel.refreshData()
-            }
-            .onReceive(NotificationCenter.default.publisher(for: .transactionUpdated)) { _ in
-                viewModel.refreshData()
             }
         }
     }
@@ -65,11 +55,11 @@ struct DashboardView: View {
         VStack(alignment: .leading, spacing: Constants.Layout.spacing) {
             Text("Total Balance")
                 .font(.system(size: 14))
-                .foregroundColor(.white.opacity(0.8))
+                .foregroundStyle(.white.opacity(0.8))
 
             Text(viewModel.totalBalance.formattedAsCurrency())
                 .font(.system(size: 36, weight: .bold))
-                .foregroundColor(.white)
+                .foregroundStyle(.white)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Constants.Layout.padding)
@@ -80,7 +70,7 @@ struct DashboardView: View {
                 endPoint: .bottomTrailing
             )
         )
-        .cornerRadius(Constants.Layout.cardCornerRadius)
+        .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
         .shadow(color: Color.appPrimary.opacity(0.3), radius: 12, x: 0, y: 6)
     }
 
@@ -89,16 +79,16 @@ struct DashboardView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Monthly Summary")
                 .font(.system(size: 18, weight: .semibold))
-                .foregroundColor(.appTextPrimary)
+                .foregroundStyle(Color.appTextPrimary)
 
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Income")
                         .font(.system(size: 12))
-                        .foregroundColor(.appTextSecondary)
+                        .foregroundStyle(Color.appTextSecondary)
                     Text(viewModel.totalIncomeThisMonth.formattedAsCurrency())
                         .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(.appSuccess)
+                        .foregroundStyle(Color.appSuccess)
                 }
 
                 Spacer()
@@ -106,16 +96,16 @@ struct DashboardView: View {
                 VStack(alignment: .trailing, spacing: 4) {
                     Text("Expenses")
                         .font(.system(size: 12))
-                        .foregroundColor(.appTextSecondary)
+                        .foregroundStyle(Color.appTextSecondary)
                     Text(viewModel.totalExpensesThisMonth.formattedAsCurrency())
                         .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(.appDanger)
+                        .foregroundStyle(Color.appDanger)
                 }
             }
         }
         .padding(16)
         .background(Color.appCardBackground)
-        .cornerRadius(Constants.Layout.cardCornerRadius)
+        .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
         .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
     }
 
@@ -125,7 +115,7 @@ struct DashboardView: View {
             HStack {
                 Text("Recent Transactions")
                     .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(.appTextPrimary)
+                    .foregroundStyle(Color.appTextPrimary)
 
                 Spacer()
             }
@@ -142,36 +132,36 @@ struct DashboardView: View {
         VStack(spacing: 12) {
             Image(systemName: "tray")
                 .font(.system(size: 32))
-                .foregroundColor(.appTextTertiary)
+                .foregroundStyle(Color.appTextTertiary)
 
             Text("No transactions yet")
                 .font(.system(size: 15, weight: .medium))
-                .foregroundColor(.appTextSecondary)
+                .foregroundStyle(Color.appTextSecondary)
 
             Button {
                 showingAddTransaction = true
             } label: {
                 Text("Add Transaction")
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.appPrimary)
+                    .foregroundStyle(Color.appPrimary)
             }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 24)
         .background(Color.appCardBackground)
-        .cornerRadius(Constants.Layout.cardCornerRadius)
+        .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
         .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
     }
 
     private var transactionsList: some View {
         VStack(spacing: 0) {
-            ForEach(Array(viewModel.recentTransactions.enumerated()), id: \.element.id) { index, transaction in
+            ForEach(viewModel.recentTransactions) { transaction in
                 TransactionRow(
                     transaction: transaction,
                     category: viewModel.category(for: transaction.categoryId)
                 )
 
-                if index < viewModel.recentTransactions.count - 1 {
+                if transaction.id != viewModel.recentTransactions.last?.id {
                     Divider()
                         .padding(.leading, 56)
                 }
@@ -180,7 +170,7 @@ struct DashboardView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .background(Color.appCardBackground)
-        .cornerRadius(Constants.Layout.cardCornerRadius)
+        .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
         .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
     }
 }

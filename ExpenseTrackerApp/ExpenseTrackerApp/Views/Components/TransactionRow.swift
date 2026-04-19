@@ -21,18 +21,18 @@ struct TransactionRow: View {
 
                 Image(systemName: category?.icon ?? "questionmark.circle")
                     .font(.system(size: 18, weight: .medium))
-                    .foregroundColor(category?.swiftUIColor ?? .gray)
+                    .foregroundStyle(category?.swiftUIColor ?? .gray)
             }
 
             // Transaction Details (FR-2.2: payee or category name, date)
             VStack(alignment: .leading, spacing: 4) {
                 Text(transaction.payee ?? category?.name ?? "Transaction")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.appTextPrimary)
+                    .foregroundStyle(Color.appTextPrimary)
 
                 Text(transaction.date.relativeString)
                     .font(.system(size: 13))
-                    .foregroundColor(.appTextSecondary)
+                    .foregroundStyle(Color.appTextSecondary)
             }
 
             Spacer()
@@ -40,7 +40,7 @@ struct TransactionRow: View {
             // Amount (FR-2.4: green for income, red for expense)
             Text(transaction.displayAmount)
                 .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(transaction.amountColor)
+                .foregroundStyle(transaction.amountColor)
         }
         .padding(.vertical, 8)
         .contentShape(Rectangle())

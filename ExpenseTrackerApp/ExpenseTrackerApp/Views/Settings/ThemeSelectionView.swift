@@ -30,17 +30,17 @@ struct ThemeSelectionView: View {
 
                                     Image(systemName: theme.icon)
                                         .font(.system(size: 20))
-                                        .foregroundColor(theme == selectedTheme ? .white : .appPrimary)
+                                        .foregroundStyle(theme == selectedTheme ? .white : Color.appPrimary)
                                 }
 
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(theme.rawValue)
                                         .font(.system(size: 16, weight: .medium))
-                                        .foregroundColor(.appTextPrimary)
+                                        .foregroundStyle(Color.appTextPrimary)
 
                                     Text(themeDescription(for: theme))
                                         .font(.system(size: 13))
-                                        .foregroundColor(.appTextSecondary)
+                                        .foregroundStyle(Color.appTextSecondary)
                                 }
 
                                 Spacer()
@@ -48,7 +48,7 @@ struct ThemeSelectionView: View {
                                 if theme == selectedTheme {
                                     Image(systemName: "checkmark")
                                         .font(.system(size: 14, weight: .semibold))
-                                        .foregroundColor(.appPrimary)
+                                        .foregroundStyle(Color.appPrimary)
                                 }
                             }
                         }

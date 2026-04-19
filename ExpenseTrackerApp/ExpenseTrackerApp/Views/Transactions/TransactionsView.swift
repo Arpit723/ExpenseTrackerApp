@@ -33,7 +33,7 @@ struct TransactionsView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: { showingAddTransaction = true }) {
                         Image(systemName: "plus")
-                            .foregroundColor(.appPrimary)
+                            .foregroundStyle(Color.appPrimary)
                     }
                 }
             }
@@ -71,25 +71,25 @@ struct TransactionsView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("This Month")
                     .font(.system(size: 12))
-                    .foregroundColor(.appTextSecondary)
+                    .foregroundStyle(Color.appTextSecondary)
 
                 HStack(spacing: 12) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Income")
                             .font(.system(size: 10))
-                            .foregroundColor(.appTextTertiary)
+                            .foregroundStyle(Color.appTextTertiary)
                         Text(viewModel.totalIncomeThisMonth.formattedAsCurrency())
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.appSuccess)
+                            .foregroundStyle(Color.appSuccess)
                     }
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Expenses")
                             .font(.system(size: 10))
-                            .foregroundColor(.appTextTertiary)
+                            .foregroundStyle(Color.appTextTertiary)
                         Text(abs(viewModel.totalExpensesThisMonth).formattedAsCurrency())
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.appDanger)
+                            .foregroundStyle(Color.appDanger)
                     }
                 }
             }
@@ -99,10 +99,10 @@ struct TransactionsView: View {
             VStack(alignment: .trailing, spacing: 2) {
                 Text("Net")
                     .font(.system(size: 10))
-                    .foregroundColor(.appTextTertiary)
+                    .foregroundStyle(Color.appTextTertiary)
                 Text(viewModel.netThisMonth.formattedAsCurrency())
                     .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(viewModel.netThisMonth >= 0 ? .appSuccess : .appDanger)
+                    .foregroundStyle(viewModel.netThisMonth >= 0 ? Color.appSuccess : Color.appDanger)
             }
         }
         .padding(16)
@@ -115,7 +115,7 @@ struct TransactionsView: View {
             // Search Bar (FR-2.5)
             HStack(spacing: 12) {
                 Image(systemName: "magnifyingglass")
-                    .foregroundColor(.appTextTertiary)
+                    .foregroundStyle(Color.appTextTertiary)
 
                 TextField("Search transactions...", text: $viewModel.searchText)
                     .font(.system(size: 15))
@@ -123,13 +123,13 @@ struct TransactionsView: View {
                 if !viewModel.searchText.isEmpty {
                     Button(action: { viewModel.searchText = "" }) {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.appTextTertiary)
+                            .foregroundStyle(Color.appTextTertiary)
                     }
                 }
             }
             .padding(12)
             .background(Color.gray.opacity(0.1))
-            .cornerRadius(10)
+            .clipShape(.rect(cornerRadius: 10))
 
             // Filter Chips (FR-2.6: All / Income / Expense only)
             ScrollView(.horizontal, showsIndicators: false) {
@@ -161,7 +161,7 @@ struct TransactionsView: View {
                             Text(viewModel.selectedSort.title)
                         }
                         .font(.system(size: 13))
-                        .foregroundColor(.appTextSecondary)
+                        .foregroundStyle(Color.appTextSecondary)
                     }
                 }
             }
@@ -199,24 +199,24 @@ struct TransactionsView: View {
         VStack(spacing: 16) {
             Image(systemName: "tray")
                 .font(.system(size: 48))
-                .foregroundColor(.appTextTertiary)
+                .foregroundStyle(Color.appTextTertiary)
 
             Text("No Transactions")
                 .font(.system(size: 18, weight: .semibold))
-                .foregroundColor(.appTextPrimary)
+                .foregroundStyle(Color.appTextPrimary)
 
             Text("Add your first transaction to get started")
                 .font(.system(size: 14))
-                .foregroundColor(.appTextSecondary)
+                .foregroundStyle(Color.appTextSecondary)
 
             Button(action: { showingAddTransaction = true }) {
                 Text("Add Transaction")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundStyle(.white)
                     .padding(.horizontal, 24)
                     .padding(.vertical, 12)
                     .background(Color.appPrimary)
-                    .cornerRadius(10)
+                    .clipShape(.rect(cornerRadius: 10))
             }
         }
         .padding(.top, 40)
@@ -229,14 +229,14 @@ struct TransactionsView: View {
             HStack {
                 Text(group.0)
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.appTextSecondary)
+                    .foregroundStyle(Color.appTextSecondary)
 
                 Spacer()
 
                 let groupTotal = group.1.reduce(0) { $0 + $1.amount }
                 Text(groupTotal.formattedAsCurrency())
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(groupTotal >= 0 ? .appSuccess : .appDanger)
+                    .foregroundStyle(groupTotal >= 0 ? Color.appSuccess : Color.appDanger)
             }
 
             // Transactions
@@ -275,7 +275,7 @@ struct TransactionsView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
             .background(Color.appCardBackground)
-            .cornerRadius(Constants.Layout.cardCornerRadius)
+            .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
         }
     }
 }
@@ -290,7 +290,7 @@ struct FilterChip: View {
         Button(action: action) {
             Text(title)
                 .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
-                .foregroundColor(isSelected ? .white : .appTextPrimary)
+                .foregroundStyle(isSelected ? .white : Color.appTextPrimary)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
                 .background(

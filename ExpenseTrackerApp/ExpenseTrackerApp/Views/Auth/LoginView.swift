@@ -56,7 +56,7 @@ struct LoginView: View {
         .toolbarVisibility(.hidden, for: .navigationBar)
         .alert(
             "Error",
-            isPresented: .constant(authViewModel.error != nil),
+            isPresented: errorAlert,
             actions: {
                 Button("OK") { authViewModel.clearError() }
             },
@@ -278,6 +278,13 @@ struct LoginView: View {
     }
 
     // MARK: - Helpers
+    private var errorAlert: Binding<Bool> {
+        Binding<Bool>(
+            get: { authViewModel.error != nil },
+            set: { if !$0 { authViewModel.clearError() } }
+        )
+    }
+
     private func isAlphanumeric(_ string: String) -> Bool {
         let hasLetter = string.unicodeScalars.contains { CharacterSet.letters.contains($0) }
         let hasDigit = string.unicodeScalars.contains { CharacterSet.decimalDigits.contains($0) }

@@ -17,6 +17,7 @@ struct RegisterView: View {
     @State private var confirmPassword: String = ""
     @State private var showPassword: Bool = false
     @State private var showConfirmPassword: Bool = false
+    @State private var showError: Bool = false
 
     var onLoginTap: (() -> Void)?
 
@@ -77,9 +78,12 @@ struct RegisterView: View {
                 .foregroundStyle(Color.appPrimary)
             }
         }
+        .onChange(of: authViewModel.error) { _, newValue in
+            showError = newValue != nil
+        }
         .alert(
             "Error",
-            isPresented: errorAlert,
+            isPresented: $showError,
             actions: {
                 Button("OK") { authViewModel.clearError() }
             },
@@ -325,13 +329,6 @@ struct RegisterView: View {
     }
 
     // MARK: - Helpers
-    private var errorAlert: Binding<Bool> {
-        Binding<Bool>(
-            get: { authViewModel.error != nil },
-            set: { if !$0 { authViewModel.clearError() } }
-        )
-    }
-
     private func isAlphanumeric(_ string: String) -> Bool {
         let hasLetter = string.unicodeScalars.contains { CharacterSet.letters.contains($0) }
         let hasDigit = string.unicodeScalars.contains { CharacterSet.decimalDigits.contains($0) }

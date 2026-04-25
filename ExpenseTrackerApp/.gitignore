@@ -130,7 +130,6 @@ Credentials/
 
 # Firebase
 *.firebase*
-GoogleService-Info.plist
 
 # Build artifacts
 *.app

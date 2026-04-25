@@ -15,7 +15,7 @@ struct ExpenseTrackerAppApp: App {
 
     init() {
         let authService: any AuthServiceProtocol
-        if let plistPath = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") {
+        if let _ = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") {
             FirebaseApp.configure()
             authService = FirebaseAuthService()
         } else {

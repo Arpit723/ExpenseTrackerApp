@@ -17,7 +17,6 @@ struct RegisterView: View {
     @State private var confirmPassword: String = ""
     @State private var showPassword: Bool = false
     @State private var showConfirmPassword: Bool = false
-    @State private var showError: Bool = false
 
     var onLoginTap: (() -> Void)?
 
@@ -78,19 +77,6 @@ struct RegisterView: View {
                 .foregroundStyle(Color.appPrimary)
             }
         }
-        .onChange(of: authViewModel.error) { _, newValue in
-            showError = newValue != nil
-        }
-        .alert(
-            "Error",
-            isPresented: $showError,
-            actions: {
-                Button("OK") { authViewModel.clearError() }
-            },
-            message: {
-                Text(authViewModel.error?.localizedDescription ?? "")
-            }
-        )
     }
 
     // MARK: - Header

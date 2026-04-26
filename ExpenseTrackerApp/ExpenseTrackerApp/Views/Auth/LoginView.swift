@@ -13,7 +13,6 @@ struct LoginView: View {
     @State private var password: String = ""
     @State private var showPassword: Bool = false
     @State private var showForgotPassword: Bool = false
-    @State private var showError: Bool = false
 
     var onSignUpTap: (() -> Void)?
 
@@ -55,19 +54,6 @@ struct LoginView: View {
         }
         .background(Color.appBackground)
         .toolbarVisibility(.hidden, for: .navigationBar)
-        .onChange(of: authViewModel.error) { _, newValue in
-            showError = newValue != nil
-        }
-        .alert(
-            "Error",
-            isPresented: $showError,
-            actions: {
-                Button("OK") { authViewModel.clearError() }
-            },
-            message: {
-                Text(authViewModel.error?.localizedDescription ?? "")
-            }
-        )
         .sheet(isPresented: $showForgotPassword) {
             forgotPasswordSheet
         }

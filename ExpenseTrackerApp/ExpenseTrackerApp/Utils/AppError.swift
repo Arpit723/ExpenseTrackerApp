@@ -16,6 +16,7 @@ enum AuthError: Equatable {
     case passwordMismatch
     case userNotFound
     case sessionExpired
+    case operationNotAllowed
 }
 
 enum NetworkError: Equatable {
@@ -61,6 +62,8 @@ enum AppError: LocalizedError, Equatable {
             return "No account found with this email address."
         case .auth(.sessionExpired):
             return "Your session has expired. Please log in again."
+        case .auth(.operationNotAllowed):
+            return "Sign-in method is not enabled. Enable Email/Password in Firebase Console → Authentication → Sign-in method."
 
         // Network
         case .network(.noConnection):
@@ -119,6 +122,8 @@ enum AppError: LocalizedError, Equatable {
                 return .network(.noConnection)
             case 17014: // FIRAuthErrorCodeInvalidCredential
                 return .auth(.invalidCredentials)
+            case 17006: // FIRAuthErrorCodeOperationNotAllowed
+                return .auth(.operationNotAllowed)
             case 17010: // FIRAuthErrorCodeTooManyRequests
                 return .network(.serverError("Too many attempts. Please try again later."))
             default:

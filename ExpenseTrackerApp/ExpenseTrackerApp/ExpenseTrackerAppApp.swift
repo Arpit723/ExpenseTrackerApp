@@ -44,6 +44,7 @@ struct ExpenseTrackerAppApp: App {
 struct AuthGateView: View {
     @ObservedObject var authViewModel: AuthViewModel
     @State private var showRegister = false
+    @State private var showError: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -58,5 +59,18 @@ struct AuthGateView: View {
                 )
             }
         }
+        .onChange(of: authViewModel.error) { _, newValue in
+            showError = newValue != nil
+        }
+        .alert(
+            "Error",
+            isPresented: $showError,
+            actions: {
+                Button("OK") { authViewModel.clearError() }
+            },
+            message: {
+                Text(authViewModel.error?.localizedDescription ?? "")
+            }
+        )
     }
 }

@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os
 
 @MainActor
 class AuthViewModel: ObservableObject {
@@ -16,6 +17,7 @@ class AuthViewModel: ObservableObject {
 
     // MARK: - Dependencies
     private let authService: any AuthServiceProtocol
+    private let logger = Logger(subsystem: "com.brahmakumaris.expensetrackerapp", category: "AuthVM")
 
     // MARK: - Computed Properties
     var isAuthenticated: Bool {
@@ -37,6 +39,7 @@ class AuthViewModel: ObservableObject {
     // MARK: - Setup
     private func setupAuthListener() {
         authService.addAuthStateListener { [weak self] state in
+            self?.logger.info("Auth state listener fired: \(String(describing: state))")
             self?.authState = state
             self?.isLoading = false
         }
@@ -48,15 +51,18 @@ class AuthViewModel: ObservableObject {
 
         isLoading = true
         error = nil
+        logger.info("Login: starting for email=\(email)")
 
         Task {
             do {
                 _ = try await authService.login(email: email, password: password)
-                // Auth state updated by Firebase state listener — no manual update needed
+                logger.info("Login: service call completed")
             } catch let err as AppError {
+                logger.error("Login: error — \(err.localizedDescription)")
                 self.error = err
                 isLoading = false
             } catch {
+                logger.error("Login: unknown error — \(error.localizedDescription)")
                 self.error = .network(.serverError(error.localizedDescription))
                 isLoading = false
             }
@@ -69,6 +75,7 @@ class AuthViewModel: ObservableObject {
 
         isLoading = true
         error = nil
+        logger.info("Register: starting for email=\(email)")
 
         Task {
             do {
@@ -79,11 +86,13 @@ class AuthViewModel: ObservableObject {
                     birthDate: birthDate,
                     phone: phone
                 )
-                // Auth state updated by Firebase state listener — no manual update needed
+                logger.info("Register: service call completed")
             } catch let err as AppError {
+                logger.error("Register: error — \(err.localizedDescription)")
                 self.error = err
                 isLoading = false
             } catch {
+                logger.error("Register: unknown error — \(error.localizedDescription)")
                 self.error = .network(.serverError(error.localizedDescription))
                 isLoading = false
             }
@@ -94,15 +103,18 @@ class AuthViewModel: ObservableObject {
     func logout() {
         isLoading = true
         error = nil
+        logger.info("Logout: starting")
 
         Task {
             do {
                 try await authService.logout()
-                // Auth state updated by Firebase state listener
+                logger.info("Logout: service call completed")
             } catch let err as AppError {
+                logger.error("Logout: error — \(err.localizedDescription)")
                 self.error = err
                 isLoading = false
             } catch {
+                logger.error("Logout: unknown error — \(error.localizedDescription)")
                 self.error = .network(.serverError(error.localizedDescription))
                 isLoading = false
             }
@@ -113,15 +125,18 @@ class AuthViewModel: ObservableObject {
     func deleteAccount() {
         isLoading = true
         error = nil
+        logger.info("DeleteAccount: starting")
 
         Task {
             do {
                 try await authService.deleteAccount()
-                // Auth state updated by Firebase state listener
+                logger.info("DeleteAccount: service call completed")
             } catch let err as AppError {
+                logger.error("DeleteAccount: error — \(err.localizedDescription)")
                 self.error = err
                 isLoading = false
             } catch {
+                logger.error("DeleteAccount: unknown error — \(error.localizedDescription)")
                 self.error = .network(.serverError(error.localizedDescription))
                 isLoading = false
             }
@@ -132,15 +147,19 @@ class AuthViewModel: ObservableObject {
     func resetPassword(email: String) {
         isLoading = true
         error = nil
+        logger.info("ResetPassword: starting for email=\(email)")
 
         Task {
             do {
                 try await authService.resetPassword(email: email)
                 isLoading = false
+                logger.info("ResetPassword: email sent")
             } catch let err as AppError {
+                logger.error("ResetPassword: error — \(err.localizedDescription)")
                 self.error = err
                 isLoading = false
             } catch {
+                logger.error("ResetPassword: unknown error — \(error.localizedDescription)")
                 self.error = .network(.serverError(error.localizedDescription))
                 isLoading = false
             }

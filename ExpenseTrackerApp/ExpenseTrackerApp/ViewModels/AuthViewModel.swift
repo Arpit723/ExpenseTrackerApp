@@ -51,8 +51,8 @@ class AuthViewModel: ObservableObject {
 
         Task {
             do {
-                let profile = try await authService.login(email: email, password: password)
-                authState = .authenticated(profile)
+                _ = try await authService.login(email: email, password: password)
+                // Auth state updated by Firebase state listener — no manual update needed
             } catch let err as AppError {
                 self.error = err
                 isLoading = false
@@ -72,14 +72,14 @@ class AuthViewModel: ObservableObject {
 
         Task {
             do {
-                let profile = try await authService.register(
+                _ = try await authService.register(
                     email: email,
                     password: password,
                     name: name,
                     birthDate: birthDate,
                     phone: phone
                 )
-                authState = .authenticated(profile)
+                // Auth state updated by Firebase state listener — no manual update needed
             } catch let err as AppError {
                 self.error = err
                 isLoading = false
@@ -98,7 +98,7 @@ class AuthViewModel: ObservableObject {
         Task {
             do {
                 try await authService.logout()
-                authState = .unauthenticated
+                // Auth state updated by Firebase state listener
             } catch let err as AppError {
                 self.error = err
                 isLoading = false
@@ -117,7 +117,7 @@ class AuthViewModel: ObservableObject {
         Task {
             do {
                 try await authService.deleteAccount()
-                authState = .unauthenticated
+                // Auth state updated by Firebase state listener
             } catch let err as AppError {
                 self.error = err
                 isLoading = false

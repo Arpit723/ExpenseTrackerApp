@@ -8,6 +8,7 @@
 import Foundation
 import Combine
 import FirebaseAuth
+import FirebaseFirestore
 
 @MainActor
 class FirebaseAuthService: ObservableObject, AuthServiceProtocol {
@@ -59,6 +60,10 @@ class FirebaseAuthService: ObservableObject, AuthServiceProtocol {
                 phone: phone,
                 preferences: UserPreferences()
             )
+
+            // Save profile to Firestore
+            try Firestore.firestore().collection("users").document(result.user.uid).setData(from: profile)
+
             return profile
         } catch {
             throw AppError.from(firebaseError: error)
@@ -91,7 +96,21 @@ class FirebaseAuthService: ObservableObject, AuthServiceProtocol {
 
     // MARK: - Delete Account
     func deleteAccount() async throws {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
         do {
+            // Delete Firestore data before auth account
+            let db = Firestore.firestore()
+            let txCollection = db.collection("users").document(uid).collection("transactions")
+            var hasMore = true
+            while hasMore {
+                let snapshot = try await txCollection.limit(to: 500).getDocuments()
+                guard !snapshot.documents.isEmpty else { hasMore = false; break }
+                let batch = db.batch()
+                for doc in snapshot.documents { batch.deleteDocument(doc.reference) }
+                try await batch.commit()
+                hasMore = snapshot.documents.count >= 500
+            }
+            try await db.collection("users").document(uid).delete()
             try await Auth.auth().currentUser?.delete()
         } catch {
             throw AppError.from(firebaseError: error)

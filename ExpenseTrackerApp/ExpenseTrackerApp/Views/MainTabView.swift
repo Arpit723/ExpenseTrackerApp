@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct MainTabView: View {
+    @EnvironmentObject var authViewModel: AuthViewModel
     @State private var selectedTab: Tab = .dashboard
     @State private var showingAddTransaction = false
     @State private var showingSettings = false
@@ -88,7 +89,7 @@ struct MainTabView: View {
         }
         .sheet(isPresented: $showingSettings) {
             NavigationStack {
-                SettingsView()
+                SettingsView(authViewModel: authViewModel)
             }
         }
     }

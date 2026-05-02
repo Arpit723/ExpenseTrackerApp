@@ -31,6 +31,7 @@ struct ExpenseTrackerAppApp: App {
                 case .authenticated:
                     MainTabView()
                         .environmentObject(dataService)
+                        .environmentObject(authViewModel)
                 case .unauthenticated, .loading:
                     AuthGateView(authViewModel: authViewModel)
                 }

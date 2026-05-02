@@ -9,11 +9,52 @@ import SwiftUI
 
 struct SettingsView: View {
     @StateObject private var viewModel = SettingsViewModel()
+    @ObservedObject var authViewModel: AuthViewModel
     @Environment(\.dismiss) private var dismiss
+
+    @State private var showLogoutConfirmation = false
+    @State private var showDeleteConfirmation = false
+    @State private var deleteConfirmationText = ""
+    @State private var showError = false
+
+    private var userInitials: String {
+        if let name = authViewModel.currentUser?.fullName, !name.isEmpty {
+            return String(name.prefix(1)).uppercased()
+        }
+        if let email = authViewModel.currentUser?.email, !email.isEmpty {
+            return String(email.prefix(1)).uppercased()
+        }
+        return "?"
+    }
 
     var body: some View {
         NavigationStack {
             List {
+                // MARK: - Account
+                Section("Account") {
+                    HStack(spacing: 12) {
+                        Circle()
+                            .fill(Color.appPrimary)
+                            .frame(width: 44, height: 44)
+                            .overlay {
+                                Text(userInitials)
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundStyle(.white)
+                            }
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(authViewModel.currentUser?.fullName ?? "User")
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundStyle(Color.appTextPrimary)
+
+                            Text(authViewModel.currentUser?.email ?? "")
+                                .font(.system(size: 13))
+                                .foregroundStyle(Color.appTextSecondary)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+
                 // MARK: - Currency Selection (FR-4.1)
                 Section("Currency") {
                     Menu {
@@ -84,6 +125,38 @@ struct SettingsView: View {
                     }
                 }
 
+                // MARK: - Danger Zone
+                Section {
+                    Button(action: { showLogoutConfirmation = true }) {
+                        HStack {
+                            if authViewModel.isLoading {
+                                ProgressView()
+                                    .frame(width: 24)
+                            } else {
+                                Image(systemName: "arrow.right.square")
+                                    .frame(width: 24)
+                            }
+
+                            Text("Sign Out")
+                                .font(.system(size: 15))
+                        }
+                        .foregroundStyle(Color.appDanger)
+                    }
+                    .disabled(authViewModel.isLoading)
+
+                    Button(action: { showDeleteConfirmation = true }) {
+                        HStack {
+                            Image(systemName: "trash")
+                                .frame(width: 24)
+
+                            Text("Delete Account")
+                                .font(.system(size: 15))
+                        }
+                        .foregroundStyle(Color.appDanger)
+                    }
+                    .disabled(authViewModel.isLoading)
+                }
+
                 // MARK: - Version
                 Section {
                     HStack {
@@ -113,6 +186,43 @@ struct SettingsView: View {
                     .fontWeight(.semibold)
                 }
             }
+            .alert("Sign Out", isPresented: $showLogoutConfirmation) {
+                Button("Cancel", role: .cancel) {}
+                Button("Sign Out", role: .destructive) {
+                    authViewModel.logout()
+                }
+            } message: {
+                Text("Are you sure you want to sign out?")
+            }
+            .alert("Delete Account", isPresented: $showDeleteConfirmation) {
+                TextField("Type DELETE to confirm", text: $deleteConfirmationText)
+                Button("Cancel", role: .cancel) {
+                    deleteConfirmationText = ""
+                }
+                Button("Delete", role: .destructive) {
+                    authViewModel.deleteAccount()
+                    deleteConfirmationText = ""
+                }
+                .disabled(deleteConfirmationText != "DELETE")
+            } message: {
+                Text("This action is irreversible. All your data will be permanently deleted.")
+            }
+            .onChange(of: authViewModel.error) { _, newValue in
+                showError = newValue != nil
+            }
+            .alert(
+                "Error",
+                isPresented: $showError,
+                actions: {
+                    Button("OK") { authViewModel.clearError() }
+                },
+                message: {
+                    Text(authViewModel.error?.localizedDescription ?? "")
+                }
+            )
+            .onChange(of: authViewModel.isAuthenticated) { _, isAuth in
+                if !isAuth { dismiss() }
+            }
         }
     }
 
@@ -127,5 +237,5 @@ struct SettingsView: View {
 
 // MARK: - Preview
 #Preview {
-    SettingsView()
+    SettingsView(authViewModel: AuthViewModel(authService: LocalAuthService()))
 }

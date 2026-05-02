@@ -76,11 +76,23 @@ class FirebaseAuthService: ObservableObject, AuthServiceProtocol {
                 logger.info("Register: profile saved successfully")
             } catch {
                 logger.error("Register: Firestore save failed — \(error.localizedDescription)")
-                // Roll back: delete the auth account so user can retry cleanly
                 try? await result.user.delete()
                 logger.info("Register: rolled back auth account due to Firestore failure")
                 throw AppError.from(firebaseError: error)
             }
+
+            // Send email verification
+            do {
+                logger.info("Register: sending verification email")
+                try await result.user.sendEmailVerification()
+                logger.info("Register: verification email sent")
+            } catch {
+                logger.error("Register: verification email failed — \(error.localizedDescription)")
+            }
+
+            // Sign out immediately — user must verify email before logging in
+            try Auth.auth().signOut()
+            logger.info("Register: signed out after registration")
 
             return profile
         } catch let error as AppError {
@@ -97,12 +109,22 @@ class FirebaseAuthService: ObservableObject, AuthServiceProtocol {
         do {
             let result = try await Auth.auth().signIn(withEmail: email, password: password)
             logger.info("Login: success uid=\(result.user.uid)")
+
+            // Check email verification
+            if !result.user.isEmailVerified {
+                logger.warning("Login: email not verified for uid=\(result.user.uid)")
+                try Auth.auth().signOut()
+                throw AppError.auth(.emailNotVerified)
+            }
+
             let profile = UserProfile(
                 uid: result.user.uid,
                 email: result.user.email,
                 preferences: UserPreferences()
             )
             return profile
+        } catch let error as AppError {
+            throw error
         } catch {
             logger.error("Login: failed — \(error.localizedDescription)")
             throw AppError.from(firebaseError: error)
@@ -157,6 +179,52 @@ class FirebaseAuthService: ObservableObject, AuthServiceProtocol {
             logger.info("ResetPassword: email sent")
         } catch {
             logger.error("ResetPassword: failed — \(error.localizedDescription)")
+            throw AppError.from(firebaseError: error)
+        }
+    }
+
+    // MARK: - Update Profile
+    func updateProfile(name: String, phone: String, birthDate: Date) async throws -> UserProfile {
+        guard let currentUser = Auth.auth().currentUser else {
+            logger.error("UpdateProfile: no current user")
+            throw AppError.auth(.sessionExpired)
+        }
+        logger.info("UpdateProfile: updating profile for uid=\(currentUser.uid)")
+        do {
+            let snapshot = try await Firestore.firestore().collection("users").document(currentUser.uid).getDocument()
+            var existing = snapshot.exists ? (try? snapshot.data(as: UserProfile.self)) : nil
+
+            let updated = UserProfile(
+                id: existing?.id ?? UUID(),
+                uid: currentUser.uid,
+                email: currentUser.email,
+                fullName: name,
+                birthDate: birthDate,
+                phone: phone,
+                preferences: existing?.preferences ?? UserPreferences()
+            )
+
+            try Firestore.firestore().collection("users").document(currentUser.uid).setData(from: updated)
+            logger.info("UpdateProfile: saved successfully")
+            return updated
+        } catch let error as AppError {
+            throw error
+        } catch {
+            logger.error("UpdateProfile: failed — \(error.localizedDescription)")
+            throw AppError.from(firebaseError: error)
+        }
+    }
+
+    // MARK: - Send Email Verification
+    func sendEmailVerification(email: String, password: String) async throws {
+        logger.info("SendEmailVerification: signing in temporarily for email=\(email)")
+        do {
+            let result = try await Auth.auth().signIn(withEmail: email, password: password)
+            try await result.user.sendEmailVerification()
+            logger.info("SendEmailVerification: email sent, signing out")
+            try Auth.auth().signOut()
+        } catch {
+            logger.error("SendEmailVerification: failed — \(error.localizedDescription)")
             throw AppError.from(firebaseError: error)
         }
     }

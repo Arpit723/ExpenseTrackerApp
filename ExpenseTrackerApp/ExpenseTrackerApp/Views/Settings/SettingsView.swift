@@ -16,6 +16,7 @@ struct SettingsView: View {
     @State private var showDeleteConfirmation = false
     @State private var deleteConfirmationText = ""
     @State private var showError = false
+    @State private var showingEditProfile = false
 
     private var userInitials: String {
         if let name = authViewModel.currentUser?.fullName, !name.isEmpty {
@@ -32,27 +33,35 @@ struct SettingsView: View {
             List {
                 // MARK: - Account
                 Section("Account") {
-                    HStack(spacing: 12) {
-                        Circle()
-                            .fill(Color.appPrimary)
-                            .frame(width: 44, height: 44)
-                            .overlay {
-                                Text(userInitials)
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .foregroundStyle(.white)
+                    Button(action: { showingEditProfile = true }) {
+                        HStack(spacing: 12) {
+                            Circle()
+                                .fill(Color.appPrimary)
+                                .frame(width: 44, height: 44)
+                                .overlay {
+                                    Text(userInitials)
+                                        .font(.system(size: 18, weight: .semibold))
+                                        .foregroundStyle(.white)
+                                }
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(authViewModel.currentUser?.fullName ?? "User")
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundStyle(Color.appTextPrimary)
+
+                                Text(authViewModel.currentUser?.email ?? "")
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(Color.appTextSecondary)
                             }
 
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(authViewModel.currentUser?.fullName ?? "User")
-                                .font(.system(size: 15, weight: .medium))
-                                .foregroundStyle(Color.appTextPrimary)
+                            Spacer()
 
-                            Text(authViewModel.currentUser?.email ?? "")
-                                .font(.system(size: 13))
-                                .foregroundStyle(Color.appTextSecondary)
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12))
+                                .foregroundStyle(Color.appTextTertiary)
                         }
+                        .padding(.vertical, 4)
                     }
-                    .padding(.vertical, 4)
                 }
 
                 // MARK: - Currency Selection (FR-4.1)
@@ -222,6 +231,9 @@ struct SettingsView: View {
             )
             .onChange(of: authViewModel.isAuthenticated) { _, isAuth in
                 if !isAuth { dismiss() }
+            }
+            .sheet(isPresented: $showingEditProfile) {
+                EditProfileSheet(authViewModel: authViewModel)
             }
         }
     }

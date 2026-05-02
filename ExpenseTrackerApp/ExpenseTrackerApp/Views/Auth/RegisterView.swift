@@ -17,6 +17,7 @@ struct RegisterView: View {
     @State private var confirmPassword: String = ""
     @State private var showPassword: Bool = false
     @State private var showConfirmPassword: Bool = false
+    @State private var showVerificationAlert: Bool = false
 
     var onLoginTap: (() -> Void)?
 
@@ -76,6 +77,19 @@ struct RegisterView: View {
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(Color.appPrimary)
             }
+        }
+        .onChange(of: authViewModel.registrationSucceeded) { _, succeeded in
+            if succeeded {
+                showVerificationAlert = true
+            }
+        }
+        .alert("Verification Email Sent", isPresented: $showVerificationAlert) {
+            Button("OK") {
+                authViewModel.registrationSucceeded = false
+                onLoginTap?()
+            }
+        } message: {
+            Text("Please check your inbox and verify your email before signing in.")
         }
     }
 

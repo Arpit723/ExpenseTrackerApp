@@ -14,6 +14,7 @@ class AuthViewModel: ObservableObject {
     @Published var authState: AuthState = .loading
     @Published var error: AppError?
     @Published var isLoading: Bool = false
+    @Published var registrationSucceeded: Bool = false
 
     // MARK: - Dependencies
     private let authService: any AuthServiceProtocol
@@ -87,6 +88,8 @@ class AuthViewModel: ObservableObject {
                     phone: phone
                 )
                 logger.info("Register: service call completed")
+                self.registrationSucceeded = true
+                self.isLoading = false
             } catch let err as AppError {
                 logger.error("Register: error — \(err.localizedDescription)")
                 self.error = err
@@ -162,6 +165,63 @@ class AuthViewModel: ObservableObject {
                 logger.error("ResetPassword: unknown error — \(error.localizedDescription)")
                 self.error = .network(.serverError(error.localizedDescription))
                 isLoading = false
+            }
+        }
+    }
+
+    // MARK: - Update Profile
+    func updateProfile(name: String, phone: String, birthDate: Date) {
+        let trimmedName = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmedName.isEmpty else {
+            error = .validation(.emptyField("name"))
+            return
+        }
+        guard phone.count >= 7 else {
+            error = .validation(.invalidPhone)
+            return
+        }
+
+        isLoading = true
+        error = nil
+        logger.info("UpdateProfile: starting")
+
+        Task {
+            do {
+                let updated = try await authService.updateProfile(name: name, phone: phone, birthDate: birthDate)
+                self.authState = .authenticated(updated)
+                self.isLoading = false
+                logger.info("UpdateProfile: success")
+            } catch let err as AppError {
+                logger.error("UpdateProfile: error — \(err.localizedDescription)")
+                self.error = err
+                self.isLoading = false
+            } catch {
+                logger.error("UpdateProfile: unknown error — \(error.localizedDescription)")
+                self.error = .network(.serverError(error.localizedDescription))
+                self.isLoading = false
+            }
+        }
+    }
+
+    // MARK: - Send Email Verification
+    func sendEmailVerification(email: String, password: String) {
+        isLoading = true
+        error = nil
+        logger.info("SendEmailVerification: starting for email=\(email)")
+
+        Task {
+            do {
+                try await authService.sendEmailVerification(email: email, password: password)
+                self.isLoading = false
+                logger.info("SendEmailVerification: email sent")
+            } catch let err as AppError {
+                logger.error("SendEmailVerification: error — \(err.localizedDescription)")
+                self.error = err
+                self.isLoading = false
+            } catch {
+                logger.error("SendEmailVerification: unknown error — \(error.localizedDescription)")
+                self.error = .network(.serverError(error.localizedDescription))
+                self.isLoading = false
             }
         }
     }

@@ -65,6 +65,29 @@ class MockAuthService: ObservableObject, AuthServiceProtocol {
         }
     }
 
+    // MARK: - Update Profile
+    func updateProfile(name: String, phone: String, birthDate: Date) async throws -> UserProfile {
+        if shouldFail {
+            throw AppError.data(.saveFailed)
+        }
+        let updated = UserProfile(
+            fullName: name,
+            birthDate: birthDate,
+            phone: phone,
+            preferences: UserPreferences()
+        )
+        authState = .authenticated(updated)
+        authStateListener?(authState)
+        return updated
+    }
+
+    // MARK: - Send Email Verification
+    func sendEmailVerification(email: String, password: String) async throws {
+        if shouldFail {
+            throw AppError.auth(.userNotFound)
+        }
+    }
+
     // MARK: - Auth State Listener
     func addAuthStateListener(_ listener: @escaping (AuthState) -> Void) {
         authStateListener = listener

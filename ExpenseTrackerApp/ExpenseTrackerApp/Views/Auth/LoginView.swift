@@ -13,6 +13,9 @@ struct LoginView: View {
     @State private var password: String = ""
     @State private var showPassword: Bool = false
     @State private var showForgotPassword: Bool = false
+    @State private var showResendVerification: Bool = false
+    @State private var resendEmail: String = ""
+    @State private var resendPassword: String = ""
 
     var onSignUpTap: (() -> Void)?
 
@@ -47,6 +50,9 @@ struct LoginView: View {
                 // MARK: - Sign Up Link
                 signUpLink
 
+                // MARK: - Resend Verification
+                resendVerificationButton
+
                 Spacer(minLength: 20)
             }
             .padding(.horizontal, Constants.Layout.padding)
@@ -56,6 +62,9 @@ struct LoginView: View {
         .toolbarVisibility(.hidden, for: .navigationBar)
         .sheet(isPresented: $showForgotPassword) {
             forgotPasswordSheet
+        }
+        .sheet(isPresented: $showResendVerification) {
+            resendVerificationSheet
         }
     }
 
@@ -207,6 +216,20 @@ struct LoginView: View {
         .padding(.top, 16)
     }
 
+    // MARK: - Resend Verification
+    private var resendVerificationButton: some View {
+        Button(action: {
+            resendEmail = email
+            showResendVerification = true
+        }) {
+            Text("Resend Verification Email")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(Color.appPrimary)
+        }
+        .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.top, 8)
+    }
+
     // MARK: - Forgot Password Sheet
     private var forgotPasswordSheet: some View {
         NavigationStack {
@@ -261,6 +284,79 @@ struct LoginView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Cancel") { showForgotPassword = false }
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+
+    // MARK: - Resend Verification Sheet
+    private var resendVerificationSheet: some View {
+        NavigationStack {
+            VStack(spacing: Constants.Layout.spacing) {
+                Text("Enter your email and password to resend the verification link.")
+                    .font(.system(size: 15))
+                    .foregroundStyle(Color.appTextSecondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                HStack(spacing: 12) {
+                    Image(systemName: "envelope")
+                        .foregroundStyle(Color.appTextTertiary)
+                        .frame(width: 20)
+
+                    TextField("Enter your email", text: $resendEmail)
+                        .font(.system(size: 15))
+                        .textContentType(.emailAddress)
+                        .keyboardType(.emailAddress)
+                        .textInputAutocapitalization(.never)
+                }
+                .padding(16)
+                .background(Color.appCardBackground)
+                .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
+
+                HStack(spacing: 12) {
+                    Image(systemName: "lock")
+                        .foregroundStyle(Color.appTextTertiary)
+                        .frame(width: 20)
+
+                    SecureField("Enter your password", text: $resendPassword)
+                        .font(.system(size: 15))
+                        .textContentType(.password)
+                }
+                .padding(16)
+                .background(Color.appCardBackground)
+                .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
+
+                Button(action: {
+                    authViewModel.sendEmailVerification(email: resendEmail, password: resendPassword)
+                    showResendVerification = false
+                }) {
+                    Text("Resend Verification")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(
+                            LinearGradient(
+                                gradient: Gradient(colors: [Color.appPrimary, Color.appSecondary]),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
+                }
+                .disabled(resendEmail.trimmingCharacters(in: .whitespaces).isEmpty || !resendEmail.contains("@") || resendPassword.isEmpty)
+
+                Spacer()
+            }
+            .padding(.horizontal, Constants.Layout.padding)
+            .padding(.top, 20)
+            .background(Color.appBackground)
+            .navigationTitle("Resend Verification")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cancel") { showResendVerification = false }
                 }
             }
         }

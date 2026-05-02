@@ -25,6 +25,8 @@ protocol AuthServiceProtocol: ObservableObject {
     func logout() async throws
     func deleteAccount() async throws
     func resetPassword(email: String) async throws
+    func updateProfile(name: String, phone: String, birthDate: Date) async throws -> UserProfile
+    func sendEmailVerification(email: String, password: String) async throws
     func addAuthStateListener(_ listener: @escaping (AuthState) -> Void)
     func removeAuthStateListener()
 }
@@ -76,6 +78,27 @@ class MockAuthService: ObservableObject, AuthServiceProtocol {
     }
 
     func resetPassword(email: String) async throws {
+        if shouldFail {
+            throw AppError.auth(.userNotFound)
+        }
+    }
+
+    func updateProfile(name: String, phone: String, birthDate: Date) async throws -> UserProfile {
+        if shouldFail {
+            throw AppError.data(.saveFailed)
+        }
+        let updated = UserProfile(
+            fullName: name,
+            birthDate: birthDate,
+            phone: phone,
+            preferences: UserPreferences()
+        )
+        authState = .authenticated(updated)
+        authStateListener?(authState)
+        return updated
+    }
+
+    func sendEmailVerification(email: String, password: String) async throws {
         if shouldFail {
             throw AppError.auth(.userNotFound)
         }

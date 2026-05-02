@@ -42,6 +42,22 @@ class LocalAuthService: ObservableObject, AuthServiceProtocol {
         // No-op for local service
     }
 
+    func updateProfile(name: String, phone: String, birthDate: Date) async throws -> UserProfile {
+        let updated = UserProfile(
+            fullName: name,
+            birthDate: birthDate,
+            phone: phone,
+            preferences: UserPreferences()
+        )
+        authState = .authenticated(updated)
+        authStateListener?(authState)
+        return updated
+    }
+
+    func sendEmailVerification(email: String, password: String) async throws {
+        // No-op for local service
+    }
+
     func addAuthStateListener(_ listener: @escaping (AuthState) -> Void) {
         authStateListener = listener
         listener(authState)

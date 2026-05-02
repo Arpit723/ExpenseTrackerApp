@@ -22,23 +22,30 @@ xcodebuild test -scheme ExpenseTrackerApp -destination 'platform=iOS Simulator,n
 
 ```
 ExpenseTrackerApp/
-├── ExpenseTrackerAppApp.swift           # @main entry — injects DataService as @EnvironmentObject
+├── ExpenseTrackerAppApp.swift           # @main entry — Firebase config, injects AuthViewModel + DataService
 ├── Models/
-│   ├── Transaction.swift                # Amount: +income, -expense; date grouping helpers
-│   ├── Category.swift                   # 12 built-in categories with icons/colors
-│   └── UserProfile.swift               # Theme & currency preferences
+│   ├── Transaction.swift                # Amount: +income, -expense; date grouping helpers; Codable
+│   ├── Category.swift                   # 12 built-in categories with icons/colors; Codable
+│   └── UserProfile.swift               # uid, email, fullName, birthDate, phone, preferences; Codable
+├── Protocols/
+│   ├── AuthServiceProtocol.swift        # Auth operations + AuthState enum + MockAuthService (#if DEBUG)
+│   └── DataServiceProtocol.swift        # Data CRUD, totals, grouping (async throws)
 ├── ViewModels/                          # All @MainActor ObservableObject
+│   ├── AuthViewModel.swift              # Auth state, login/register/logout/resetPassword/deleteAccount
 │   ├── DashboardViewModel.swift         # Balance, income, expenses, recent transactions
 │   ├── TransactionViewModel.swift       # Filtering (all/income/expense), sorting, search
 │   └── SettingsViewModel.swift          # Currency & theme management
 ├── Views/
-│   ├── MainTabView.swift                # 2 tabs: Dashboard, Transactions + FAB
+│   ├── MainTabView.swift                # 3 tabs: Dashboard, Transactions, Settings + FAB
+│   ├── Auth/
+│   │   ├── LoginView.swift              # Email/password login, forgot password
+│   │   └── RegisterView.swift           # Full registration form (6 fields)
 │   ├── Dashboard/DashboardView.swift
 │   ├── Transactions/
 │   │   ├── TransactionsView.swift       # Date-grouped list with search & filter
 │   │   └── AddTransactionView.swift     # Add/edit transaction sheet
 │   ├── Settings/
-│   │   ├── SettingsView.swift           # Currency & theme
+│   │   ├── SettingsView.swift           # Currency, theme, logout, delete account
 │   │   ├── CurrencyPickerView.swift     # Currency selection
 │   │   └── ThemeSelectionView.swift     # Theme selection
 │   └── Components/
@@ -46,34 +53,69 @@ ExpenseTrackerApp/
 │       ├── TransactionRow.swift         # Transaction list item
 │       └── QuickActionButton.swift      # Quick action buttons & FAB
 ├── Services/
-│   └── DataService.swift               # Data store — CRUD, computed totals
-└── Utils/
-    ├── Constants.swift                  # Layout values, Notification.Name extensions
-    └── Extensions/
-        ├── Color+Theme.swift            # App colors, hex init
-        ├── Date+Extensions.swift        # startOfMonth, isThisMonth, dateGroupTitle
-        └── Double+Currency.swift        # Currency formatting helpers
+│   ├── DataService.swift                # In-memory data store — CRUD, computed totals (testing)
+│   ├── FirebaseAuthService.swift        # Firebase Auth: login, register, logout, resetPassword, deleteAccount
+│   ├── FirestoreDataService.swift       # Firestore: per-user CRUD, real-time listener, batch delete
+│   └── LocalAuthService.swift           # In-memory auth fallback (no GoogleService-Info.plist)
+├── Utils/
+│   ├── AppError.swift                   # Unified error type: auth, network, data, validation + Firebase mapping
+│   ├── Constants.swift                  # Layout values, Notification.Name extensions, quick amounts
+│   └── Extensions/
+│       ├── Color+Theme.swift            # App colors, hex init
+│       ├── Date+Extensions.swift        # startOfMonth, isThisMonth, dateGroupTitle
+│       └── Double+Currency.swift        # Currency formatting helpers
+ExpenseTrackerAppTests/
+├── Mocks/
+│   ├── MockAuthService.swift            # Test mock for AuthServiceProtocol
+│   └── MockDataService.swift            # Test mock for DataServiceProtocol
+├── AppErrorTests.swift                  # AppError + Firebase error mapping tests
+├── AuthViewModelTests.swift             # AuthViewModel unit tests
+├── DashboardViewModelTests.swift        # DashboardViewModel unit tests
+├── TransactionViewModelTests.swift      # TransactionViewModel unit tests
+├── SettingsViewModelTests.swift         # SettingsViewModel unit tests
+├── FirebaseAuthServiceTests.swift       # FirebaseAuthService tests
+├── FirestoreDataServiceTests.swift      # FirestoreDataService tests
+└── ProtocolSmokeTests.swift             # Protocol conformance smoke tests
 ```
 
 ## Architecture
 
 ### Data Flow
 
-1. **App entry** (`ExpenseTrackerAppApp`): checks Firebase Auth state, shows AuthGateView or MainTabView
-2. **AuthViewModel**: observes Firebase Auth state listener, publishes `AuthState` (.loading, .authenticated, .unauthenticated)
-3. **ViewModels**: receive data service via dependency injection; own `@Published` display state
-4. **Views**: observe `@StateObject` ViewModels
+1. **App entry** (`ExpenseTrackerAppApp`): configures Firebase if `GoogleService-Info.plist` exists, falls back to `LocalAuthService` otherwise; creates `AuthViewModel` with injected `AuthServiceProtocol`
+2. **Auth gate**: observes `AuthViewModel.authState` — shows `AuthGateView` (Login/Register) or `MainTabView`
+3. **AuthViewModel**: reactive auth state (`.loading`, `.authenticated`, `.unauthenticated`), delegates to `AuthServiceProtocol`
+4. **ViewModels**: receive data service via dependency injection; own `@Published` display state
+5. **Views**: observe `@StateObject` ViewModels
 
-### Data Service
+### Service Layer
 
-`FirestoreDataService` (production) implements `DataServiceProtocol` with Firebase Firestore. Replaces in-memory `DataService` at injection point. `DataService` kept for testing only.
+**AuthServiceProtocol** — implemented by:
+- `FirebaseAuthService` — production: uses `FirebaseAuth` SDK for real authentication
+- `LocalAuthService` — fallback: in-memory auth when `GoogleService-Info.plist` is absent
+- `MockAuthService` — testing: `#if DEBUG` mock in `AuthServiceProtocol.swift`
+
+**DataServiceProtocol** — implemented by:
+- `FirestoreDataService` — production: Firestore per-user CRUD, real-time snapshot listener, batch delete
+- `DataService` — testing: in-memory singleton with sample data
 
 Key behaviors:
-- Async CRUD operations on transactions
+- Async CRUD operations on transactions (`async throws`)
 - Computed totals: `totalBalance`, `totalIncomeThisMonth`, `totalExpensesThisMonth`
 - `groupedTransactions()` returns date-grouped list
-- Pagination: Dashboard loads 10 recent, Transaction list uses 50-item pages
-- Firestore is source of truth for currency/theme (section 7.7 of SRS)
+- Firestore snapshot listener for real-time updates
+- Firestore is source of truth for currency/theme
+
+### Error Handling
+
+**AppError** enum (`Utils/AppError.swift`) — unified error type:
+- `AuthError` — invalidCredentials, emailInUse, weakPassword, passwordMismatch, userNotFound, sessionExpired
+- `NetworkError` — noConnection, timeout, serverError
+- `DataError` — saveFailed, loadFailed, deleteFailed
+- `ValidationError` — emptyField, invalidEmail, invalidPassword, futureDate, invalidPhone
+
+Error flow: Service throws `AppError` → ViewModel catches, sets `@Published var error: AppError?` → View shows alert.
+Firebase errors mapped to `AppError` via `AppError.from(firebaseError:)`.
 
 ### Notification-Based Updates
 
@@ -124,9 +166,11 @@ Every feature, bug fix, or refactoring must follow this cycle:
 
 ## Coding Conventions
 
-- **SwiftUI + Combine**: use `@Published` for reactive state; no external dependencies
-- **Models**: structs with `UUID` ids, `categoryId` reference on Transaction
-- **ViewModels**: `@MainActor`, `ObservableObject`, receive data service from environment
+- **SwiftUI + Combine**: use `@Published` for reactive state; `async/await` for service calls
+- **Models**: structs with `UUID` ids, `Codable` + `Hashable` conformance, `categoryId` reference on Transaction
+- **ViewModels**: `@MainActor`, `ObservableObject`, receive services via init injection
+- **Services**: `@MainActor`, `ObservableObject`, conform to protocols (`AuthServiceProtocol`, `DataServiceProtocol`)
+- **Errors**: all service methods `async throws` → throw `AppError` → ViewModel catches and sets `@Published var error`
 - **Colors**: use theme colors from `Color+Theme.swift` (`Color.appPrimary`, `Color.appSuccess`, etc.), never hardcode hex in views
 - **Layout constants**: use `Constants.Layout.*` and `Constants.Animation.*`, avoid magic numbers
 - **Date formatting**: use `Date+Extensions` helpers, keep formatters static for performance
@@ -147,6 +191,8 @@ Defined in `docs/SRS.md` sections 6.5-6.9:
 
 - **Transaction.amount**: positive = income, negative = expense
 - **Category**: 12 built-in categories; `isSystem` flag marks non-deletable ones (Income, Transfer)
+- **UserProfile**: uid (Firebase Auth UID), email, fullName, birthDate, phone, preferences
+- **AppError**: unified error with auth/network/data/validation sub-types; Firebase error mapping
 - **Single balance**: all transactions tracked against one total — no multi-account
 
 ## Out of Scope (Do NOT Implement)
@@ -168,7 +214,7 @@ Full requirements: `docs/SRS.md`
 
 **ExpenseTrackerApp — Firebase Auth & Firestore Migration**
 
-A simple SwiftUI iOS expense tracker that currently records daily transactions (income/expenses) in-memory. This project adds Firebase Authentication (login/register/logout), migrates data storage to Firebase Firestore (per-user persistence), and establishes unit testing infrastructure. The app uses MVVM architecture with protocol-based services for testability.
+A SwiftUI iOS expense tracker with Firebase Authentication (login/register/logout/password reset/delete account) and Firebase Firestore (per-user persistence). Uses MVVM architecture with protocol-based services for testability. Includes comprehensive unit tests with mock-based isolation.
 
 **Core Value:** Users can securely log in, have their transactions persisted across sessions, and trust the app works correctly through automated tests.
 
@@ -187,55 +233,46 @@ A simple SwiftUI iOS expense tracker that currently records daily transactions (
 
 ## Languages
 - Swift 5.0 - All application code: models, views, view models, services, utilities
-- XML - `Info.plist` configuration (remote-notification background mode only)
-- Ruby / YAML - Not used; no fastlane active configuration despite `.gitignore` entry
 ## Runtime
 - iOS 18.5+ (minimum deployment target: `IPHONEOS_DEPLOYMENT_TARGET = 18.5`)
 - Apple platforms only (iOS simulator and device)
 - SwiftUI lifecycle app (`@main` App protocol)
-- Swift Package Manager (SPM) - configured in Xcode project but **zero external packages** currently installed
-- No CocoaPods, Carthage, or Accio dependencies
-- No `Package.swift` file (Xcode-managed SPM only)
+- Swift Package Manager (SPM) for Firebase SDK
 ## Frameworks
 - SwiftUI - All UI views and layout; app entry point uses `Scene`/`WindowGroup` pattern
 - Combine - Reactive bindings in ViewModels (`@Published`, `NotificationCenter.default.publisher`, `sink`, `AnyCancellable`)
 - Foundation - Data models, formatting, date calculations, `NotificationCenter`
-- XCTest - Unit test framework (`ExpenseTrackerAppTests/ExpenseTrackerAppTests.swift`)
-- XCUITest - UI test framework (`ExpenseTrackerAppUITests/`)
-- Xcode 16+ (project format is `.xcodeproj`, no `.xcworkspace`)
-- `xcodebuild` CLI for CI builds: `xcodebuild -scheme ExpenseTrackerApp -destination 'platform=iOS Simulator,name=iPhone 16'`
+- XCTest - Unit test framework with mock-based isolation
+- Firebase Core - SDK bootstrap and configuration
+- FirebaseAuth - Email/Password authentication, state listener, password reset
+- FirebaseFirestore - Per-user data persistence, real-time snapshots, offline cache
 ## Key Dependencies
-- None. This is a zero-dependency app. All functionality is built on Apple first-party frameworks only.
-- `@AppStorage` - UserDefaults wrapper for persistent settings (currency, theme); see `SettingsViewModel.swift`
-- `NotificationCenter` - Internal event bus for transaction CRUD notifications; see `Constants.swift`
+- Firebase iOS SDK (latest, via SPM) — `FirebaseCore`, `FirebaseAuth`, `FirebaseFirestore`
+- `GoogleService-Info.plist` — Firebase config (not in version control; app falls back to `LocalAuthService` without it)
 ## Configuration
-- No `.env` files present
-- `Info.plist` contains only `UIBackgroundModes` with `remote-notification` (currently unused)
-- No `GoogleService-Info.plist` (Firebase not integrated)
-- All configuration is code-based in `Constants.swift` and `DataService.swift`
-- Build config in `ExpenseTrackerApp.xcodeproj/project.pbxproj`
-- Swift version: 5.0 (all targets)
-- iOS deployment target: 18.5 (all targets)
-- Three build targets:
+- `Info.plist` contains `UIBackgroundModes` with `remote-notification`
+- `GoogleService-Info.plist` — Firebase project config (required for production auth/Firestore)
+- All layout/animation configuration in `Constants.swift`
+- Three build targets: `ExpenseTrackerApp`, `ExpenseTrackerAppTests`, `ExpenseTrackerAppUITests`
 ## Platform Requirements
 - macOS with Xcode 16+
 - iOS 18.5 Simulator (iPhone 16 is the development target device)
-- No external tooling required
 - iPhone / iPad running iOS 18.5+
-- Not configured for App Store distribution yet (no archive/scheme settings for release)
-- No CI/CD pipeline configured
 ## Data Persistence
-- **Target**: Firebase Firestore per-user storage (`users/{uid}`, `users/{uid}/transactions/{txId}`)
-- **Current**: In-memory `DataService` singleton with `@Published` arrays (to be replaced by FirestoreDataService)
-- `@AppStorage` caches currency/theme locally; Firestore is source of truth
+- **Production**: Firebase Firestore per-user storage (`users/{uid}/transactions/{txId}`)
+- **Testing**: In-memory `DataService` singleton with `@Published` arrays
+- `@AppStorage` caches currency/theme locally
 - Models conform to `Codable` for Firestore serialization
 - Offline: Firestore SDK caches locally, queues writes for sync
+- Real-time updates via Firestore snapshot listener in `FirestoreDataService`
 ## Key Architecture Decisions
 - **MVVM pattern**: `@MainActor ObservableObject` ViewModels with `@Published` properties
-- **No external dependencies**: Entirely Apple frameworks
+- **Firebase SDK**: FirebaseAuth + FirebaseFirestore via SPM
 - **SwiftUI only**: No UIKit/Storyboard usage
 - **Reactive updates**: Combine-based `NotificationCenter` subscriptions in ViewModels
-- **Protocol-based data layer**: `DataServiceProtocol` with async methods; `FirestoreDataService` in production, `DataService` for testing
+- **Protocol-based services**: `AuthServiceProtocol` and `DataServiceProtocol` with multiple implementations
+- **Service fallback**: App auto-detects `GoogleService-Info.plist`; uses `LocalAuthService` when absent
+- **Unified error handling**: `AppError` enum with Firebase error mapping
 - **Swift previews**: `#Preview` macros used in views for Xcode Canvas previews
 <!-- GSD:stack-end -->
 
@@ -246,9 +283,8 @@ A simple SwiftUI iOS expense tracker that currently records daily transactions (
 - PascalCase matching the primary type/struct/enum they define: `DashboardView.swift`, `TransactionRow.swift`, `Color+Theme.swift`
 - Extensions on existing types use `Type+Extension` naming: `Color+Theme.swift`, `Date+Extensions.swift`, `Double+Currency.swift`
 - One primary type per file (exceptions: small helper types like `FilterChip` embedded in the same file as the view that uses it)
-- PascalCase: `Transaction`, `DashboardViewModel`, `CategoryPickerGrid`
+- PascalCase for type names: `Transaction`, `DashboardViewModel`, `CategoryPickerGrid`
 - Models are structs; ViewModels and services are classes
-- PascalCase for type names: `TransactionFilter`, `TransactionSort`, `AppTheme`
 - camelCase for cases: `.all`, `.income`, `.expenses`, `.dateDescending`
 - camelCase: `refreshData()`, `addTransaction(_:)`, `formattedAsCurrency()`
 - Private helpers are extracted: `private var balanceCard: some View`, `private func saveTransaction()`
@@ -265,144 +301,136 @@ A simple SwiftUI iOS expense tracker that currently records daily transactions (
 - Consistent 4-space indentation
 - No linter configured (no SwiftLint, no custom build phase linting)
 - Heavy use of `// MARK: - Section Name` throughout all files
-- Used in every file to separate logical sections
-- View bodies use `// MARK: - Section Name` to delineate extracted view properties
-- Pattern: `// MARK: - Published Properties`, `// MARK: - Dependencies`, `// MARK: - Initialization`, `// MARK: - Computed Properties`, `// MARK: - Helper Methods`, `// MARK: - CRUD Operations`
-## Import Organization
+- Pattern: `// MARK: - Published Properties`, `// MARK: - Dependencies`, `// MARK: - Initialization`, `// MARK: - Computed Properties`, `// MARK: - CRUD Operations`
 ## Error Handling
-- No formal error handling (`throws`, `Result`, `Error` types) anywhere in the codebase
-- Optional chaining for nullable values: `transaction.payee?.localizedCaseInsensitiveContains(searchText)`
-- Nil coalescing for fallbacks: `Color(hex: color) ?? .gray`, `formatter.string(from:) ?? "$0.00"`
-- Guard-let for early returns in action methods: `guard let amountValue = Double(amount), let category = selectedCategory, amountValue > 0 else { return }`
-- `try?` used for optional async work: `try? await Task.sleep(nanoseconds: 300_000_000)`
-- Form validation via computed `isValidForm` property checking `amountValue > 0 && selectedCategory != nil`
-- Save button disabled when form is invalid: `.disabled(!isValidForm)`
+- `AppError` enum with sub-types: `AuthError`, `NetworkError`, `DataError`, `ValidationError`
+- All service methods use `async throws` and throw `AppError`
+- Firebase errors mapped via `AppError.from(firebaseError:)` in `AppError.swift`
+- ViewModels catch errors and set `@Published var error: AppError?`
+- Views show alerts via `.alert(item: $viewModel.error)`
+- Guard-let for early returns in validation methods
+- Form validation via computed `isValidForm` property
+## Import Organization
+- Framework imports first: `SwiftUI`, `Foundation`, `Combine`
+- Firebase imports: `FirebaseCore`, `FirebaseAuth`, `FirebaseFirestore`
+- No third-party imports beyond Firebase SDK
 ## Logging
-- No logging statements anywhere in the codebase
+- No logging statements in production code
 - Debugging relies on Xcode previews and SwiftUI preview macros
 - `#Preview` blocks at the bottom of every view file
 ## Comments
 - `// MARK: -` comments are used extensively for navigation
-- SRS requirement references inline: `// MARK: - Income/Expense Toggle (FR-2.1)`, `// MARK: - Recent Transactions (last 10 -- FR-1.3)`
-- Section comments explain business rules: `// Search across payee and notes (FR-2.5)`, `// Filter by type (FR-2.6)`
-- Otherwise minimal comments -- code is self-documenting
-- Not used. No doc comments on any function, property, or type.
+- SRS requirement references inline: `// MARK: - Income/Expense Toggle (FR-2.1)`
+- Otherwise minimal comments — code is self-documenting
 ## Function Design
-- View body properties are decomposed into extracted sub-views (computed properties returning `some View`)
-- Example from `ExpenseTrackerApp/Views/Dashboard/DashboardView.swift`:
+- View body properties decomposed into extracted sub-views (computed properties returning `some View`)
 - Action functions are short and focused: `saveTransaction()`, `deleteTransaction(_:)`
-- ViewModels return concrete types, not optionals, for UI state
+- Service methods use `async throws` returning concrete types
 - Helper lookups return optionals: `func category(for id: UUID) -> Category?`
 - Computed properties for derived data: `var isExpense: Bool`, `var displayAmount: String`
 ## Module Design
 - Each file exports one primary type
-- Small helper types (like `FilterChip`, `CategoryIconView`, `FloatingAddButton`, `QuickAmountButton`, `TabBarButton`, `CategoryPickerSheet`) are defined in the same file as the primary view that uses them
+- Small helper types defined in the same file as the primary view that uses them
 - No barrel files or module index files
-- Not used. All imports reference specific types via the module `ExpenseTrackerApp`
 ## Architecture Patterns
 - Views: SwiftUI `View` structs in `Views/` directory
 - ViewModels: `@MainActor ObservableObject` classes in `ViewModels/` directory
 - Models: Value-type structs in `Models/` directory
+- Services: `@MainActor ObservableObject` classes in `Services/` directory
 - Views create ViewModels via `@StateObject private var viewModel = SomeViewModel()`
-- ViewModels receive `DataService` via dependency injection with default parameter: `init(dataService: DataService = .shared)`
+- ViewModels receive services via init injection with protocol type: `init(authService: any AuthServiceProtocol)`
 - `@Published` properties on ViewModels drive view updates
-- `DataService` injected at app root via `.environmentObject(dataService)` in `ExpenseTrackerApp/ExpenseTrackerAppApp.swift`
-- `DataService` posts `Notification.Name` notifications after CRUD operations
+- `DataService` injected at app root via `.environmentObject(dataService)`
+- `AuthViewModel` injected at app root via `@StateObject`
+- Services post `Notification.Name` notifications after CRUD operations
 - ViewModels subscribe via Combine publishers in `setupBindings()`
-- Views also subscribe directly via `.onReceive()` modifier
-- Notification names defined as `Notification.Name` extensions in `ExpenseTrackerApp/Utils/Constants.swift`
-- Always use theme colors from `Color+Theme.swift`: `Color.appPrimary`, `Color.appSuccess`, `Color.appDanger`, etc.
-- Never hardcode hex values in views -- use `Color(hex:)` initializer or theme constants
+- Always use theme colors from `Color+Theme.swift`: `Color.appPrimary`, `Color.appSuccess`, `Color.appDanger`
 - Category colors stored as hex strings, converted via `Color(hex:)` in `Category.swift`
 - Use `Constants.Layout.*` for spacing, padding, corner radius
 - Use `Constants.Animation.*` for animation durations
 - Avoid magic numbers in views
 - Use `Date+Extensions` helpers: `.relativeString`, `.shortDate`, `.timeOnly`, `.monthYear`
-- Custom formatting: `.formatted(with: "MMM d, yyyy")`
-- Note: `DateFormatter` is created per-call in extensions (not cached in static property) -- a potential performance concern
-- Use `Double.formattedAsCurrency()` extension from `ExpenseTrackerApp/Utils/Extensions/Double+Currency.swift`
-- Default currency code is "USD"
+- Use `Double.formattedAsCurrency()` extension from `Double+Currency.swift`
 <!-- GSD:conventions-end -->
 
 <!-- GSD:architecture-start source:ARCHITECTURE.md -->
 ## Architecture
 
 ## 1. Architectural Pattern: MVVM
+
 ```
+Views (SwiftUI)
+  ↓ @StateObject
+ViewModels (@MainActor, ObservableObject)
+  ↓ protocol injection
+Services (AuthServiceProtocol, DataServiceProtocol)
+  ↓
+Firebase SDK / In-Memory
 ```
+
 ### Layer Boundaries
 | Layer | Files | Responsibility |
 |-------|-------|----------------|
 | **Views** | `Views/**/*.swift` | Declarative UI, user interaction capture |
 | **ViewModels** | `ViewModels/**/*.swift` | Business logic, state transformation, service coordination |
-| **Services** | `Services/DataService.swift` | Data storage, CRUD, computed aggregates |
-| **Models** | `Models/**/*.swift` | Data structures, validation helpers |
-| **Utils** | `Utils/**/*.swift` | Shared extensions, constants |
-## 2. Data Flow
-### 2.1 App Initialization
-```
-```
-### 2.2 View → ViewModel → Service Flow
-```
-```
-### 2.3 Notification-Based Updates
-```
-```
-- `.transactionAdded`
-- `.transactionUpdated`
-- `.transactionDeleted`
-### 2.4 Reactive Filter Pipeline (TransactionViewModel)
-```
-```
-## 3. Key Abstractions
-### 3.1 DataService (Singleton)
-```swift
-```
-### 3.2 Models (Value Types)
-- `Transaction` — amount (signed), categoryId, date, payee, notes, timestamps
-- `Category` — name, icon (SF Symbol), color (hex), isSystem flag
-- `UserProfile` — preferences (currency, theme)
-- `UserPreferences` — currency code/symbol, AppTheme enum
-- `AppTheme` — enum: .light, .dark, .system
-### 3.3 ViewModels (Reference Types)
-```swift
-```
-- `DashboardViewModel` — balance, monthly stats, recent transactions
-- `TransactionViewModel` — filtering, sorting, search, CRUD delegation
-- `SettingsViewModel` — currency/theme via @AppStorage
+| **Protocols** | `Protocols/*.swift` | Service abstractions for DI and testability |
+| **Services** | `Services/*.swift` | Data storage, auth, CRUD, Firebase integration |
+| **Models** | `Models/*.swift` | Data structures, Codable conformance |
+| **Utils** | `Utils/**/*.swift` | Shared extensions, constants, AppError |
+
+## 2. Service Implementations
+
+### AuthServiceProtocol
+| Implementation | When Used |
+|----------------|-----------|
+| `FirebaseAuthService` | Production — `GoogleService-Info.plist` present |
+| `LocalAuthService` | Development — no Firebase config |
+| `MockAuthService` | Unit tests (`#if DEBUG`) |
+
+### DataServiceProtocol
+| Implementation | When Used |
+|----------------|-----------|
+| `FirestoreDataService` | Production — per-user Firestore CRUD |
+| `DataService` | Testing — in-memory singleton |
+
+## 3. Data Flow
+
+1. `ExpenseTrackerAppApp` → detects `GoogleService-Info.plist` → creates `FirebaseAuthService` or `LocalAuthService`
+2. `AuthViewModel(authService:)` → `setupAuthListener()` → publishes `AuthState`
+3. Auth gate observes `authState` → Login/Register or MainTabView
+4. ViewModels receive `DataServiceProtocol` via init injection
+5. `FirestoreDataService.loadData()` → sets up Firestore snapshot listener
+6. CRUD operations → post `NotificationCenter` events → ViewModels recalculate
+
 ## 4. Navigation Architecture
-### 4.1 Tab-Based Navigation
-```
-```
-### 4.2 Sheet-Based Flows
-- **Add Transaction:** Full-height sheet with form
-- **Edit Transaction:** Same sheet, pre-populated from `transactionToEdit`
-- **Category Picker:** Medium/large detent sheet
-- **Settings:** Full NavigationStack sheet
-### 4.3 Delete Flow
-```
-```
+- **Auth flow**: NavigationStack with LoginView → RegisterView
+- **Tab-based**: 3 tabs (Dashboard, Transactions, Settings)
+- **Sheet flows**: Add/Edit Transaction, Category Picker
+- **Settings**: includes Logout and Delete Account
+
 ## 5. State Management
 | Mechanism | Usage |
 |-----------|-------|
 | `@StateObject` | ViewModels owned by views |
 | `@Published` | ViewModel → View reactivity |
-| `@EnvironmentObject` | DataService injected from app root (not currently used by views directly) |
-| `@AppStorage` | Currency, theme cached locally (Firestore is source of truth) |
-| `NotificationCenter` | Cross-ViewModel updates (DataService → DashboardViewModel) |
+| `@EnvironmentObject` | DataService injected from app root |
+| `@AppStorage` | Currency, theme cached locally |
+| `NotificationCenter` | Cross-ViewModel updates |
 | `Combine` | Debounced filter pipeline in TransactionViewModel |
+
 ## 6. Error Handling
-- **AppError** enum (SRS section 7.6): unified error type with auth, network, data, validation cases
-- Error flow: Service throws AppError → ViewModel catches, sets `@Published var error: AppError?` → View shows `.alert(item:)`
+- **AppError** enum: unified error type with auth, network, data, validation cases
+- Error flow: Service throws AppError → ViewModel catches, sets `@Published var error: AppError?` → View shows alert
 - All ViewModels include `@Published var error: AppError?` and `@Published var isLoading: Bool`
-- Firebase errors mapped to AppError in service layer
+- Firebase errors mapped to AppError via `AppError.from(firebaseError:)` in service layer
 - Form validation: `isValidForm` computed property gates save button
+
 ## 7. Cross-Cutting Concerns
 ### 7.1 Theming
 - `Color+Theme.swift` defines app color palette
 - `AppTheme` enum supports light/dark/system
 - Colors use semantic names (`.appPrimary`, `.appSuccess`, `.appDanger`)
-- System colors (`.appTextPrimary` = `UIColor.label`) adapt to dark mode automatically
+- System colors adapt to dark mode automatically
 ### 7.2 Date Handling
 - `Date+Extensions.swift` provides grouping helpers (`isToday`, `isThisWeek`, `isThisMonth`)
 - `Transaction.dateGroupTitle` returns section headers for list grouping

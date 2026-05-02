@@ -42,7 +42,7 @@ Plans:
 **Requirements**: AUTH-01, AUTH-02, AUTH-03, AUTH-05, AUTH-06, AUTH-08, UX-01, UX-02, UX-03
 **Success Criteria** (what must be TRUE):
   1. Unauthenticated users see a login screen with email and password fields
-  2. User can navigate to a registration form with Name, Gender, Phone Number, Email, and Password fields
+  2. User can navigate to a registration form with Name, Birth Date, Phone Number, Email, and Password fields
   3. Loading spinners appear and buttons disable during auth operations (login, register, logout)
   4. Invalid inputs show inline validation errors (email format, password strength, required fields)
   5. Auth errors display user-facing alert messages (wrong password, email in use, network error)

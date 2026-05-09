@@ -94,6 +94,8 @@ class FirebaseAuthService: ObservableObject, AuthServiceProtocol {
       } catch {
         logger.error("Register: Firestore save failed — \(error.localizedDescription)")
         try? await result.user.delete()
+        logger.error(
+          "Register: rollback delete failed — account may be orphaned for uid=\(result.user.uid)")
         logger.info("Register: rolled back auth account due to Firestore failure")
         throw AppError.from(firebaseError: error)
       }

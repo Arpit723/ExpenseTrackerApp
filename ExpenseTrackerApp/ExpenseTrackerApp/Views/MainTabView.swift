@@ -8,137 +8,140 @@
 import SwiftUI
 
 struct MainTabView: View {
-    @EnvironmentObject var authViewModel: AuthViewModel
-    @State private var selectedTab: Tab = .dashboard
-    @State private var showingAddTransaction = false
-    @State private var showingSettings = false
+  @EnvironmentObject var authViewModel: AuthViewModel
+  @EnvironmentObject var dataServiceContainer: DataServiceContainer
+  @State private var selectedTab: Tab = .dashboard
+  @State private var showingAddTransaction = false
+  @State private var showingSettings = false
 
-    enum Tab: Int, CaseIterable {
-        case dashboard = 0
-        case transactions = 1
+  enum Tab: Int, CaseIterable {
+    case dashboard = 0
+    case transactions = 1
 
-        var title: String {
-            switch self {
-            case .dashboard: return "Home"
-            case .transactions: return "Transactions"
-            }
-        }
-
-        var icon: String {
-            switch self {
-            case .dashboard: return "house.fill"
-            case .transactions: return "list.bullet.rectangle"
-            }
-        }
+    var title: String {
+      switch self {
+      case .dashboard: return "Home"
+      case .transactions: return "Transactions"
+      }
     }
 
-    var body: some View {
-        ZStack(alignment: .bottom) {
-            // MARK: - Tab Content
-            Group {
-                switch selectedTab {
-                case .dashboard:
-                    DashboardView()
-                case .transactions:
-                    TransactionsView()
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            // MARK: - Custom Tab Bar
-            VStack(spacing: 0) {
-                Divider()
-
-                HStack(spacing: 0) {
-                    ForEach(Tab.allCases, id: \.self) { tab in
-                        TabBarButton(
-                            tab: tab,
-                            isSelected: selectedTab == tab,
-                            action: { selectedTab = tab }
-                        )
-                    }
-
-                    // Settings button
-                    TabBarButton(
-                        icon: "gearshape.fill",
-                        title: "Settings",
-                        isSelected: false,
-                        action: { showingSettings = true }
-                    )
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-                .padding(.bottom, 24)
-                .background(Color.appCardBackground)
-            }
-
-            // MARK: - Floating Add Button (bottom-right, above tab bar)
-            VStack {
-                Spacer()
-                HStack {
-                    Spacer()
-                    FloatingAddButton(action: { showingAddTransaction = true })
-                        .padding(.trailing, 20)
-                        .padding(.bottom, 100)
-                }
-            }
-        }
-        .ignoresSafeArea(.keyboard)
-        .sheet(isPresented: $showingAddTransaction) {
-            AddTransactionView()
-        }
-        .sheet(isPresented: $showingSettings) {
-            NavigationStack {
-                SettingsView(authViewModel: authViewModel)
-            }
-        }
+    var icon: String {
+      switch self {
+      case .dashboard: return "house.fill"
+      case .transactions: return "list.bullet.rectangle"
+      }
     }
+  }
+
+  var body: some View {
+    ZStack(alignment: .bottom) {
+      // MARK: - Tab Content
+      Group {
+        switch selectedTab {
+        case .dashboard:
+          DashboardView(dataService: dataServiceContainer.service)
+            .id(ObjectIdentifier(dataServiceContainer.service as AnyObject))
+        case .transactions:
+          TransactionsView(dataService: dataServiceContainer.service)
+            .id(ObjectIdentifier(dataServiceContainer.service as AnyObject))
+        }
+      }
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+      // MARK: - Custom Tab Bar
+      VStack(spacing: 0) {
+        Divider()
+
+        HStack(spacing: 0) {
+          ForEach(Tab.allCases, id: \.self) { tab in
+            TabBarButton(
+              tab: tab,
+              isSelected: selectedTab == tab,
+              action: { selectedTab = tab }
+            )
+          }
+
+          // Settings button
+          TabBarButton(
+            icon: "gearshape.fill",
+            title: "Settings",
+            isSelected: false,
+            action: { showingSettings = true }
+          )
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 24)
+        .background(Color.appCardBackground)
+      }
+
+      // MARK: - Floating Add Button (bottom-right, above tab bar)
+      VStack {
+        Spacer()
+        HStack {
+          Spacer()
+          FloatingAddButton(action: { showingAddTransaction = true })
+            .padding(.trailing, 20)
+            .padding(.bottom, 100)
+        }
+      }
+    }
+    .ignoresSafeArea(.keyboard)
+    .sheet(isPresented: $showingAddTransaction) {
+      AddTransactionView(dataService: dataServiceContainer.service)
+    }
+    .sheet(isPresented: $showingSettings) {
+      NavigationStack {
+        SettingsView(dataService: dataServiceContainer.service, authViewModel: authViewModel)
+      }
+    }
+  }
 }
 
 // MARK: - Tab Bar Button
 struct TabBarButton: View {
-    let tab: MainTabView.Tab?
-    let icon: String
-    let title: String
-    var isSelected: Bool = false
-    let action: () -> Void
+  let tab: MainTabView.Tab?
+  let icon: String
+  let title: String
+  var isSelected: Bool = false
+  let action: () -> Void
 
-    init(tab: MainTabView.Tab, isSelected: Bool, action: @escaping () -> Void) {
-        self.tab = tab
-        self.icon = tab.icon
-        self.title = tab.title
-        self.isSelected = isSelected
-        self.action = action
+  init(tab: MainTabView.Tab, isSelected: Bool, action: @escaping () -> Void) {
+    self.tab = tab
+    self.icon = tab.icon
+    self.title = tab.title
+    self.isSelected = isSelected
+    self.action = action
+  }
+
+  init(icon: String, title: String, isSelected: Bool, action: @escaping () -> Void) {
+    self.tab = nil
+    self.icon = icon
+    self.title = title
+    self.isSelected = isSelected
+    self.action = action
+  }
+
+  var body: some View {
+    Button(action: action) {
+      VStack(spacing: 4) {
+        Image(systemName: icon)
+          .font(.system(size: 22, weight: isSelected ? .semibold : .regular))
+          .foregroundStyle(isSelected ? Color.appPrimary : Color.appTextTertiary)
+          .frame(height: 24)
+
+        Text(title)
+          .font(.system(size: 10, weight: isSelected ? .semibold : .regular))
+          .foregroundStyle(isSelected ? Color.appPrimary : Color.appTextTertiary)
+      }
+      .frame(maxWidth: .infinity)
+      .contentShape(Rectangle())
     }
-
-    init(icon: String, title: String, isSelected: Bool, action: @escaping () -> Void) {
-        self.tab = nil
-        self.icon = icon
-        self.title = title
-        self.isSelected = isSelected
-        self.action = action
-    }
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.system(size: 22, weight: isSelected ? .semibold : .regular))
-                    .foregroundStyle(isSelected ? Color.appPrimary : Color.appTextTertiary)
-                    .frame(height: 24)
-
-                Text(title)
-                    .font(.system(size: 10, weight: isSelected ? .semibold : .regular))
-                    .foregroundStyle(isSelected ? Color.appPrimary : Color.appTextTertiary)
-            }
-            .frame(maxWidth: .infinity)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
+    .buttonStyle(.plain)
+  }
 }
 
 // MARK: - Preview
 #Preview {
-    MainTabView()
+  MainTabView()
 }

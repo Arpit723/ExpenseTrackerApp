@@ -8,369 +8,394 @@
 import SwiftUI
 
 struct AddTransactionView: View {
-    @Environment(\.dismiss) private var dismiss
-    @StateObject private var viewModel = TransactionViewModel()
+  @Environment(\.dismiss) private var dismiss
+  var dataService: any DataServiceProtocol
+  @StateObject private var viewModel: TransactionViewModel
 
-    // Edit mode
-    var editingTransaction: Transaction?
+  // Edit mode
+  var editingTransaction: Transaction?
 
-    // Form State
-    @State private var amount: String = ""
-    @State private var selectedCategory: Category?
-    @State private var selectedDate = Date()
-    @State private var payee: String = ""
-    @State private var notes: String = ""
-    @State private var isExpense: Bool = true
-    @State private var showingCategoryPicker: Bool = false
+  // Form State
+  @State private var amount: String = ""
+  @State private var selectedCategory: Category?
+  @State private var selectedDate = Date()
+  @State private var payee: String = ""
+  @State private var notes: String = ""
+  @State private var isExpense: Bool = true
+  @State private var showingCategoryPicker: Bool = false
+  @State private var showError = false
 
-    // Computed Properties
-    private var isEditMode: Bool {
-        editingTransaction != nil
-    }
+  // Computed Properties
+  private var isEditMode: Bool {
+    editingTransaction != nil
+  }
 
-    private var isValidForm: Bool {
-        let amountValue = Double(amount) ?? 0
-        return amountValue > 0 && selectedCategory != nil
-    }
+  private var isValidForm: Bool {
+    let amountValue = Double(amount) ?? 0
+    return amountValue > 0 && selectedCategory != nil
+  }
 
-    // Initialize for add mode
-    init() {
-        self.editingTransaction = nil
-    }
+  // Initialize for add mode
+  init(dataService: any DataServiceProtocol) {
+    self.dataService = dataService
+    _viewModel = StateObject(wrappedValue: TransactionViewModel(dataService: dataService))
+    self.editingTransaction = nil
+  }
 
-    // Initialize for edit mode
-    init(transaction: Transaction) {
-        self.editingTransaction = transaction
-        _amount = State(initialValue: String(format: "%.2f", abs(transaction.amount)))
-        _selectedDate = State(initialValue: transaction.date)
-        _payee = State(initialValue: transaction.payee ?? "")
-        _notes = State(initialValue: transaction.notes ?? "")
-        _isExpense = State(initialValue: transaction.isExpense)
-    }
+  // Initialize for edit mode
+  init(dataService: any DataServiceProtocol, transaction: Transaction) {
+    self.dataService = dataService
+    _viewModel = StateObject(wrappedValue: TransactionViewModel(dataService: dataService))
+    self.editingTransaction = transaction
+    _amount = State(initialValue: String(format: "%.2f", abs(transaction.amount)))
+    _selectedDate = State(initialValue: transaction.date)
+    _payee = State(initialValue: transaction.payee ?? "")
+    _notes = State(initialValue: transaction.notes ?? "")
+    _isExpense = State(initialValue: transaction.isExpense)
+  }
 
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: Constants.Layout.spacing) {
-                    // MARK: - Income/Expense Toggle (FR-2.1)
-                    typeToggle
+  var body: some View {
+    NavigationStack {
+      ScrollView {
+        VStack(spacing: Constants.Layout.spacing) {
+          // MARK: - Income/Expense Toggle (FR-2.1)
+          typeToggle
 
-                    // MARK: - Amount Input
-                    amountInputSection
+          // MARK: - Amount Input
+          amountInputSection
 
-                    // MARK: - Quick Amount Buttons
-                    quickAmountButtons
+          // MARK: - Quick Amount Buttons
+          quickAmountButtons
 
-                    // MARK: - Category Selection
-                    categorySection
+          // MARK: - Category Selection
+          categorySection
 
-                    // MARK: - Date Selection
-                    dateSection
+          // MARK: - Date Selection
+          dateSection
 
-                    // MARK: - Payee
-                    payeeSection
+          // MARK: - Payee
+          payeeSection
 
-                    // MARK: - Notes
-                    notesSection
+          // MARK: - Notes
+          notesSection
 
-                    // MARK: - Save Button
-                    saveButton
-                }
-                .padding(Constants.Layout.padding)
-            }
-            .background(Color.appBackground)
-            .navigationTitle(isEditMode ? "Edit Transaction" : "Add Transaction")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                    .foregroundStyle(Color.appTextSecondary)
-                }
-            }
-            .sheet(isPresented: $showingCategoryPicker) {
-                CategoryPickerSheet(categories: viewModel.categories, selectedCategory: $selectedCategory)
-            }
-            .onAppear {
-                if let transaction = editingTransaction {
-                    // Pre-select category in edit mode
-                    selectedCategory = viewModel.category(for: transaction)
-                }
-            }
+          // MARK: - Save Button
+          saveButton
         }
+        .padding(Constants.Layout.padding)
+      }
+      .background(Color.appBackground)
+      .navigationTitle(isEditMode ? "Edit Transaction" : "Add Transaction")
+      .navigationBarTitleDisplayMode(.inline)
+      .toolbar {
+        ToolbarItem(placement: .navigationBarLeading) {
+          Button("Cancel") {
+            dismiss()
+          }
+          .foregroundStyle(Color.appTextSecondary)
+        }
+      }
+      .sheet(isPresented: $showingCategoryPicker) {
+        CategoryPickerSheet(categories: viewModel.categories, selectedCategory: $selectedCategory)
+      }
+      .onChange(of: viewModel.error) { _, newValue in
+        showError = newValue != nil
+      }
+      .alert(
+        "Error",
+        isPresented: $showError,
+        actions: {
+          Button("OK") { viewModel.error = nil }
+        },
+        message: {
+          Text(viewModel.error?.localizedDescription ?? "")
+        }
+      )
+      .onAppear {
+        if let transaction = editingTransaction {
+          // Pre-select category in edit mode
+          selectedCategory = viewModel.category(for: transaction)
+        }
+      }
     }
+  }
 
-    // MARK: - Type Toggle
-    private var typeToggle: some View {
-        HStack(spacing: 0) {
-            Button(action: { isExpense = true }) {
-                Text("Expense")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(isExpense ? .white : Color.appTextPrimary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(isExpense ? Color.appDanger : Color.clear)
-                    .clipShape(.rect(cornerRadius: Constants.Layout.buttonCornerRadius))
+  // MARK: - Type Toggle
+  private var typeToggle: some View {
+    HStack(spacing: 0) {
+      Button(action: { isExpense = true }) {
+        Text("Expense")
+          .font(.system(size: 15, weight: .semibold))
+          .foregroundStyle(isExpense ? .white : Color.appTextPrimary)
+          .frame(maxWidth: .infinity)
+          .padding(.vertical, 12)
+          .background(isExpense ? Color.appDanger : Color.clear)
+          .clipShape(.rect(cornerRadius: Constants.Layout.buttonCornerRadius))
+      }
+
+      Button(action: { isExpense = false }) {
+        Text("Income")
+          .font(.system(size: 15, weight: .semibold))
+          .foregroundStyle(!isExpense ? .white : Color.appTextPrimary)
+          .frame(maxWidth: .infinity)
+          .padding(.vertical, 12)
+          .background(!isExpense ? Color.appSuccess : Color.clear)
+          .clipShape(.rect(cornerRadius: Constants.Layout.buttonCornerRadius))
+      }
+    }
+    .background(Color.gray.opacity(0.15))
+    .clipShape(.rect(cornerRadius: Constants.Layout.buttonCornerRadius))
+  }
+
+  // MARK: - Amount Input
+  private var amountInputSection: some View {
+    VStack(spacing: 8) {
+      Text("Amount")
+        .font(.system(size: 14, weight: .medium))
+        .foregroundStyle(Color.appTextSecondary)
+        .frame(maxWidth: .infinity, alignment: .leading)
+
+      HStack(alignment: .firstTextBaseline, spacing: 4) {
+        Text("$")
+          .font(.system(size: 40, weight: .bold))
+          .foregroundStyle(amount.isEmpty ? Color.appTextTertiary : Color.appTextPrimary)
+
+        TextField("0.00", text: $amount)
+          .font(.system(size: 48, weight: .bold))
+          .foregroundStyle(Color.appTextPrimary)
+          .keyboardType(.decimalPad)
+          .multilineTextAlignment(.center)
+      }
+      .padding(.vertical, 20)
+      .frame(maxWidth: .infinity)
+      .background(Color.appCardBackground)
+      .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
+    }
+  }
+
+  // MARK: - Quick Amount Buttons
+  private var quickAmountButtons: some View {
+    VStack(spacing: 8) {
+      Text("Quick Amounts")
+        .font(.system(size: 13))
+        .foregroundStyle(Color.appTextSecondary)
+        .frame(maxWidth: .infinity, alignment: .leading)
+
+      HStack(spacing: 8) {
+        ForEach(Constants.quickAmounts, id: \.self) { value in
+          Button(action: {
+            amount = String(format: "%.0f", value)
+          }) {
+            Text("$\(Int(value))")
+              .font(.system(size: 14, weight: .medium))
+              .foregroundStyle(Color.appPrimary)
+              .frame(maxWidth: .infinity)
+              .padding(.vertical, 12)
+              .background(Color.appPrimary.opacity(0.1))
+              .clipShape(.rect(cornerRadius: 8))
+          }
+        }
+      }
+    }
+  }
+
+  // MARK: - Category Section
+  private var categorySection: some View {
+    VStack(spacing: 8) {
+      Text("Category")
+        .font(.system(size: 14, weight: .medium))
+        .foregroundStyle(Color.appTextSecondary)
+        .frame(maxWidth: .infinity, alignment: .leading)
+
+      Button(action: { showingCategoryPicker = true }) {
+        HStack(spacing: 12) {
+          if let category = selectedCategory {
+            ZStack {
+              Circle()
+                .fill(category.swiftUIColor.opacity(0.15))
+                .frame(width: 36, height: 36)
+
+              Image(systemName: category.icon)
+                .font(.system(size: 16))
+                .foregroundStyle(category.swiftUIColor)
             }
 
-            Button(action: { isExpense = false }) {
-                Text("Income")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(!isExpense ? .white : Color.appTextPrimary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(!isExpense ? Color.appSuccess : Color.clear)
-                    .clipShape(.rect(cornerRadius: Constants.Layout.buttonCornerRadius))
+            Text(category.name)
+              .font(.system(size: 15))
+              .foregroundStyle(Color.appTextPrimary)
+          } else {
+            ZStack {
+              Circle()
+                .fill(Color.gray.opacity(0.15))
+                .frame(width: 36, height: 36)
+
+              Image(systemName: "questionmark.circle")
+                .font(.system(size: 16))
+                .foregroundStyle(.gray)
             }
+
+            Text("Select a category")
+              .font(.system(size: 15))
+              .foregroundStyle(Color.appTextTertiary)
+          }
+
+          Spacer()
+
+          Image(systemName: "chevron.right")
+            .foregroundStyle(Color.appTextTertiary)
         }
-        .background(Color.gray.opacity(0.15))
-        .clipShape(.rect(cornerRadius: Constants.Layout.buttonCornerRadius))
+        .padding(16)
+        .background(Color.appCardBackground)
+        .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
+      }
     }
+  }
 
-    // MARK: - Amount Input
-    private var amountInputSection: some View {
-        VStack(spacing: 8) {
-            Text("Amount")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(Color.appTextSecondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
+  // MARK: - Date Section
+  private var dateSection: some View {
+    VStack(spacing: 8) {
+      Text("Date")
+        .font(.system(size: 14, weight: .medium))
+        .foregroundStyle(Color.appTextSecondary)
+        .frame(maxWidth: .infinity, alignment: .leading)
 
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text("$")
-                    .font(.system(size: 40, weight: .bold))
-                    .foregroundStyle(amount.isEmpty ? Color.appTextTertiary : Color.appTextPrimary)
-
-                TextField("0.00", text: $amount)
-                    .font(.system(size: 48, weight: .bold))
-                    .foregroundStyle(Color.appTextPrimary)
-                    .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.center)
-            }
-            .padding(.vertical, 20)
-            .frame(maxWidth: .infinity)
-            .background(Color.appCardBackground)
-            .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
-        }
+      DatePicker(
+        "", selection: $selectedDate, in: ...Date(), displayedComponents: [.date, .hourAndMinute]
+      )
+      .datePickerStyle(.compact)
+      .labelsHidden()
+      .padding(16)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .background(Color.appCardBackground)
+      .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
     }
+  }
 
-    // MARK: - Quick Amount Buttons
-    private var quickAmountButtons: some View {
-        VStack(spacing: 8) {
-            Text("Quick Amounts")
-                .font(.system(size: 13))
-                .foregroundStyle(Color.appTextSecondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
+  // MARK: - Payee Section
+  private var payeeSection: some View {
+    VStack(spacing: 8) {
+      Text("Payee (Optional)")
+        .font(.system(size: 14, weight: .medium))
+        .foregroundStyle(Color.appTextSecondary)
+        .frame(maxWidth: .infinity, alignment: .leading)
 
-            HStack(spacing: 8) {
-                ForEach(Constants.quickAmounts, id: \.self) { value in
-                    Button(action: {
-                        amount = String(format: "%.0f", value)
-                    }) {
-                        Text("$\(Int(value))")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(Color.appPrimary)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(Color.appPrimary.opacity(0.1))
-                            .clipShape(.rect(cornerRadius: 8))
-                    }
-                }
-            }
-        }
+      HStack(spacing: 12) {
+        Image(systemName: "person.circle")
+          .foregroundStyle(Color.appTextTertiary)
+
+        TextField("e.g., Starbucks, Amazon", text: $payee)
+          .font(.system(size: 15))
+      }
+      .padding(16)
+      .background(Color.appCardBackground)
+      .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
     }
+  }
 
-    // MARK: - Category Section
-    private var categorySection: some View {
-        VStack(spacing: 8) {
-            Text("Category")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(Color.appTextSecondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
+  // MARK: - Notes Section
+  private var notesSection: some View {
+    VStack(spacing: 8) {
+      Text("Notes (Optional)")
+        .font(.system(size: 14, weight: .medium))
+        .foregroundStyle(Color.appTextSecondary)
+        .frame(maxWidth: .infinity, alignment: .leading)
 
-            Button(action: { showingCategoryPicker = true }) {
-                HStack(spacing: 12) {
-                    if let category = selectedCategory {
-                        ZStack {
-                            Circle()
-                                .fill(category.swiftUIColor.opacity(0.15))
-                                .frame(width: 36, height: 36)
+      HStack(spacing: 12) {
+        Image(systemName: "note.text")
+          .foregroundStyle(Color.appTextTertiary)
 
-                            Image(systemName: category.icon)
-                                .font(.system(size: 16))
-                                .foregroundStyle(category.swiftUIColor)
-                        }
-
-                        Text(category.name)
-                            .font(.system(size: 15))
-                            .foregroundStyle(Color.appTextPrimary)
-                    } else {
-                        ZStack {
-                            Circle()
-                                .fill(Color.gray.opacity(0.15))
-                                .frame(width: 36, height: 36)
-
-                            Image(systemName: "questionmark.circle")
-                                .font(.system(size: 16))
-                                .foregroundStyle(.gray)
-                        }
-
-                        Text("Select a category")
-                            .font(.system(size: 15))
-                            .foregroundStyle(Color.appTextTertiary)
-                    }
-
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .foregroundStyle(Color.appTextTertiary)
-                }
-                .padding(16)
-                .background(Color.appCardBackground)
-                .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
-            }
-        }
+        TextField("Add a note...", text: $notes)
+          .font(.system(size: 15))
+      }
+      .padding(16)
+      .background(Color.appCardBackground)
+      .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
     }
+  }
 
-    // MARK: - Date Section
-    private var dateSection: some View {
-        VStack(spacing: 8) {
-            Text("Date")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(Color.appTextSecondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            DatePicker("", selection: $selectedDate, in: ...Date(), displayedComponents: [.date, .hourAndMinute])
-                .datePickerStyle(.compact)
-                .labelsHidden()
-                .padding(16)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.appCardBackground)
-                .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
-        }
+  // MARK: - Save Button
+  private var saveButton: some View {
+    Button(action: saveTransaction) {
+      Text(isEditMode ? "Update Transaction" : "Save Transaction")
+        .font(.system(size: 17, weight: .semibold))
+        .foregroundStyle(.white)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
+        .background(
+          LinearGradient(
+            gradient: Gradient(
+              colors: isValidForm
+                ? [Color.appPrimary, Color.appSecondary] : [Color.gray, Color.gray]),
+            startPoint: .leading,
+            endPoint: .trailing
+          )
+        )
+        .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
     }
+    .disabled(!isValidForm)
+  }
 
-    // MARK: - Payee Section
-    private var payeeSection: some View {
-        VStack(spacing: 8) {
-            Text("Payee (Optional)")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(Color.appTextSecondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
+  // MARK: - Actions
+  private func saveTransaction() {
+    guard let amountValue = Double(amount),
+      let category = selectedCategory,
+      amountValue > 0
+    else { return }
 
-            HStack(spacing: 12) {
-                Image(systemName: "person.circle")
-                    .foregroundStyle(Color.appTextTertiary)
+    let finalAmount = isExpense ? -amountValue : amountValue
 
-                TextField("e.g., Starbucks, Amazon", text: $payee)
-                    .font(.system(size: 15))
-            }
-            .padding(16)
-            .background(Color.appCardBackground)
-            .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
-        }
+    Task {
+      if let existing = editingTransaction {
+        var updated = existing
+        updated.amount = finalAmount
+        updated.categoryId = category.id
+        updated.date = selectedDate
+        updated.payee = payee.isEmpty ? nil : payee
+        updated.notes = notes.isEmpty ? nil : notes
+        await viewModel.updateTransactionAsync(updated)
+      } else {
+        let transaction = Transaction(
+          amount: finalAmount,
+          categoryId: category.id,
+          date: selectedDate,
+          payee: payee.isEmpty ? nil : payee,
+          notes: notes.isEmpty ? nil : notes
+        )
+        await viewModel.addTransactionAsync(transaction)
+      }
+      dismiss()
     }
-
-    // MARK: - Notes Section
-    private var notesSection: some View {
-        VStack(spacing: 8) {
-            Text("Notes (Optional)")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(Color.appTextSecondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            HStack(spacing: 12) {
-                Image(systemName: "note.text")
-                    .foregroundStyle(Color.appTextTertiary)
-
-                TextField("Add a note...", text: $notes)
-                    .font(.system(size: 15))
-            }
-            .padding(16)
-            .background(Color.appCardBackground)
-            .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
-        }
-    }
-
-    // MARK: - Save Button
-    private var saveButton: some View {
-        Button(action: saveTransaction) {
-            Text(isEditMode ? "Update Transaction" : "Save Transaction")
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(
-                    LinearGradient(
-                        gradient: Gradient(colors: isValidForm ? [Color.appPrimary, Color.appSecondary] : [Color.gray, Color.gray]),
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .clipShape(.rect(cornerRadius: Constants.Layout.cardCornerRadius))
-        }
-        .disabled(!isValidForm)
-    }
-
-    // MARK: - Actions
-    private func saveTransaction() {
-        guard let amountValue = Double(amount),
-              let category = selectedCategory,
-              amountValue > 0 else { return }
-
-        let finalAmount = isExpense ? -amountValue : amountValue
-
-        if let existing = editingTransaction {
-            var updated = existing
-            updated.amount = finalAmount
-            updated.categoryId = category.id
-            updated.date = selectedDate
-            updated.payee = payee.isEmpty ? nil : payee
-            updated.notes = notes.isEmpty ? nil : notes
-            viewModel.updateTransaction(updated)
-        } else {
-            let transaction = Transaction(
-                amount: finalAmount,
-                categoryId: category.id,
-                date: selectedDate,
-                payee: payee.isEmpty ? nil : payee,
-                notes: notes.isEmpty ? nil : notes
-            )
-            viewModel.addTransaction(transaction)
-        }
-
-        dismiss()
-    }
+  }
 }
 
 // MARK: - Category Picker Sheet
 struct CategoryPickerSheet: View {
-    let categories: [Category]
-    @Binding var selectedCategory: Category?
-    @Environment(\.dismiss) private var dismiss
+  let categories: [Category]
+  @Binding var selectedCategory: Category?
+  @Environment(\.dismiss) private var dismiss
 
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                CategoryPickerGrid(categories: categories, selectedCategory: $selectedCategory)
-                    .padding()
-            }
-            .background(Color.appBackground)
-            .navigationTitle("Select Category")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-            }
+  var body: some View {
+    NavigationStack {
+      ScrollView {
+        CategoryPickerGrid(categories: categories, selectedCategory: $selectedCategory)
+          .padding()
+      }
+      .background(Color.appBackground)
+      .navigationTitle("Select Category")
+      .navigationBarTitleDisplayMode(.inline)
+      .toolbar {
+        ToolbarItem(placement: .navigationBarTrailing) {
+          Button("Done") {
+            dismiss()
+          }
         }
-        .presentationDetents([.medium, .large])
+      }
     }
+    .presentationDetents([.medium, .large])
+  }
 }
 
 // MARK: - Preview
 #Preview {
-    AddTransactionView()
+  AddTransactionView(dataService: DataService.shared)
 }

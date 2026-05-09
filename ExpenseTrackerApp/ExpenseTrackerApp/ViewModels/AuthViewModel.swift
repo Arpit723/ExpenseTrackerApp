@@ -129,6 +129,7 @@ class AuthViewModel: ObservableObject {
     Task {
       do {
         try await authService.logout()
+        self.isLoading = false
         logger.info("Logout: service call completed")
       } catch let err as AppError {
         logger.error("Logout: error — \(err.localizedDescription)")
@@ -151,6 +152,7 @@ class AuthViewModel: ObservableObject {
     Task {
       do {
         try await authService.deleteAccount()
+        self.isLoading = false
         logger.info("DeleteAccount: service call completed")
       } catch let err as AppError {
         logger.error("DeleteAccount: error — \(err.localizedDescription)")

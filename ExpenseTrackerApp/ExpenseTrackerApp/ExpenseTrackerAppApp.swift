@@ -10,8 +10,12 @@ import SwiftUI
 
 @main
 struct ExpenseTrackerAppApp: App {
-  @StateObject private var dataService = DataService.shared
+  @StateObject private var dataServiceContainer = DataServiceContainer()
   @StateObject private var authViewModel: AuthViewModel
+
+  private var hasFirebaseConfig: Bool {
+    Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil
+  }
 
   init() {
     let authService: any AuthServiceProtocol
@@ -30,9 +34,23 @@ struct ExpenseTrackerAppApp: App {
         switch authViewModel.authState {
         case .authenticated:
           MainTabView()
-            .environmentObject(dataService)
+            .environmentObject(dataServiceContainer)
             .environmentObject(authViewModel)
-        case .unauthenticated, .loading:
+            .task {
+              guard hasFirebaseConfig else { return }
+              dataServiceContainer.switchToFirestore(uid: authViewModel.currentUser?.uid ?? "")
+              let migration = FirestoreMigration(uid: authViewModel.currentUser?.uid ?? "")
+              try? await migration.migrateIfNeeded()
+              do {
+                try await dataServiceContainer.service.loadData()
+              } catch {
+                // Firestore data load failed; offline cache may still serve data
+              }
+            }
+        case .unauthenticated:
+          AuthGateView(authViewModel: authViewModel)
+            .onAppear { dataServiceContainer.switchToLocal() }
+        case .loading:
           AuthGateView(authViewModel: authViewModel)
         }
       }
@@ -42,7 +60,7 @@ struct ExpenseTrackerAppApp: App {
   }
 }
 
-// MARK: - Auth Gate (manages Login ↔ Register navigation)
+// MARK: - Auth Gate (manages Login <-> Register navigation)
 struct AuthGateView: View {
   @ObservedObject var authViewModel: AuthViewModel
   @State private var showRegister = false

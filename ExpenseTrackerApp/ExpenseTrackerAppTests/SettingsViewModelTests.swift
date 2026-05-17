@@ -6,99 +6,68 @@
 //
 
 import XCTest
+
 @testable import ExpenseTrackerApp
 
 @MainActor
 final class SettingsViewModelTests: XCTestCase {
 
-    private func makeViewModel() -> SettingsViewModel {
-        let mockData = MockDataService()
-        return SettingsViewModel(dataService: mockData)
-    }
+  override func setUp() async throws {
+    try await super.setUp()
+    UserDefaults.standard.removeObject(forKey: "currency")
+    UserDefaults.standard.removeObject(forKey: "currencySymbol")
+  }
 
-    // MARK: - Initial State
+  private func makeViewModel() -> SettingsViewModel {
+    let mockData = MockDataService()
+    return SettingsViewModel(dataService: mockData, currencyManager: CurrencyManager())
+  }
 
-    func testDefaultThemeIsSystem() {
-        let viewModel = makeViewModel()
-        XCTAssertEqual(viewModel.currentTheme, .system)
-    }
+  // MARK: - Initial State
 
-    func testDefaultCurrencyIsUSD() {
-        let viewModel = makeViewModel()
-        XCTAssertEqual(viewModel.currentCurrency.code, "USD")
-        XCTAssertEqual(viewModel.currentCurrency.symbol, "$")
-    }
+  func testDefaultCurrencyIsUSD() {
+    let viewModel = makeViewModel()
+    XCTAssertEqual(viewModel.currentCurrency.code, "USD")
+    XCTAssertEqual(viewModel.currentCurrency.symbol, "$")
+  }
 
-    // MARK: - Theme Changes
+  // MARK: - Currency Changes
 
-    func testSetThemeToLight() {
-        let viewModel = makeViewModel()
-        viewModel.currentTheme = .light
-        XCTAssertEqual(viewModel.currentTheme, .light)
-    }
+  func testSetCurrency() {
+    let viewModel = makeViewModel()
+    viewModel.currentCurrency = (code: "EUR", symbol: "€")
+    XCTAssertEqual(viewModel.currentCurrency.code, "EUR")
+    XCTAssertEqual(viewModel.currentCurrency.symbol, "€")
+  }
 
-    func testSetThemeToDark() {
-        let viewModel = makeViewModel()
-        viewModel.currentTheme = .dark
-        XCTAssertEqual(viewModel.currentTheme, .dark)
-    }
+  func testSetCurrencyToINR() {
+    let viewModel = makeViewModel()
+    viewModel.currentCurrency = (code: "INR", symbol: "₹")
+    XCTAssertEqual(viewModel.currentCurrency.code, "INR")
+    XCTAssertEqual(viewModel.currentCurrency.symbol, "₹")
+  }
 
-    func testSetThemeBackToSystem() {
-        let viewModel = makeViewModel()
-        viewModel.currentTheme = .dark
-        viewModel.currentTheme = .system
-        XCTAssertEqual(viewModel.currentTheme, .system)
-    }
+  // MARK: - Available Currencies
 
-    // MARK: - Currency Changes
+  func testAvailableCurrenciesNotEmpty() {
+    let viewModel = makeViewModel()
+    XCTAssertFalse(viewModel.availableCurrencies.isEmpty)
+  }
 
-    func testSetCurrency() {
-        let viewModel = makeViewModel()
-        viewModel.currentCurrency = (code: "EUR", symbol: "€")
-        XCTAssertEqual(viewModel.currentCurrency.code, "EUR")
-        XCTAssertEqual(viewModel.currentCurrency.symbol, "€")
-    }
+  func testAvailableCurrenciesContainsUSD() {
+    let viewModel = makeViewModel()
+    let hasUSD = viewModel.availableCurrencies.contains { $0.code == "USD" }
+    XCTAssertTrue(hasUSD)
+  }
 
-    func testSetCurrencyToINR() {
-        let viewModel = makeViewModel()
-        viewModel.currentCurrency = (code: "INR", symbol: "₹")
-        XCTAssertEqual(viewModel.currentCurrency.code, "INR")
-        XCTAssertEqual(viewModel.currentCurrency.symbol, "₹")
-    }
+  func testAvailableCurrenciesContainsINR() {
+    let viewModel = makeViewModel()
+    let hasINR = viewModel.availableCurrencies.contains { $0.code == "INR" }
+    XCTAssertTrue(hasINR)
+  }
 
-    // MARK: - Available Currencies
-
-    func testAvailableCurrenciesNotEmpty() {
-        let viewModel = makeViewModel()
-        XCTAssertFalse(viewModel.availableCurrencies.isEmpty)
-    }
-
-    func testAvailableCurrenciesContainsUSD() {
-        let viewModel = makeViewModel()
-        let hasUSD = viewModel.availableCurrencies.contains { $0.code == "USD" }
-        XCTAssertTrue(hasUSD)
-    }
-
-    func testAvailableCurrenciesContainsINR() {
-        let viewModel = makeViewModel()
-        let hasINR = viewModel.availableCurrencies.contains { $0.code == "INR" }
-        XCTAssertTrue(hasINR)
-    }
-
-    func testAvailableCurrenciesHasAtLeast8Options() {
-        let viewModel = makeViewModel()
-        XCTAssertGreaterThanOrEqual(viewModel.availableCurrencies.count, 8)
-    }
-
-    // MARK: - AppTheme Enum
-
-    func testAppThemeRawValues() {
-        XCTAssertEqual(AppTheme.light.rawValue, "Light")
-        XCTAssertEqual(AppTheme.dark.rawValue, "Dark")
-        XCTAssertEqual(AppTheme.system.rawValue, "System")
-    }
-
-    func testAppThemeAllCases() {
-        XCTAssertEqual(AppTheme.allCases.count, 3)
-    }
+  func testAvailableCurrenciesHasAtLeast8Options() {
+    let viewModel = makeViewModel()
+    XCTAssertGreaterThanOrEqual(viewModel.availableCurrencies.count, 8)
+  }
 }

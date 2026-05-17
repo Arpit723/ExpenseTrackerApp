@@ -13,12 +13,14 @@ extension Double {
   private static let currencyFormatter: NumberFormatter = {
     let formatter = NumberFormatter()
     formatter.numberStyle = .currency
-    formatter.currencyCode = UserDefaults.standard.string(forKey: "currency") ?? "USD"
+    formatter.currencyCode = "USD"
     return formatter
   }()
 
-  func formattedAsCurrency() -> String {
-    Self.currencyFormatter.currencyCode = UserDefaults.standard.string(forKey: "currency") ?? "USD"
+  func formattedAsCurrency(code: String = UserDefaults.standard.string(forKey: "currency") ?? "USD")
+    -> String
+  {
+    Self.currencyFormatter.currencyCode = code
     return Self.currencyFormatter.string(from: NSNumber(value: self)) ?? "$0.00"
   }
 

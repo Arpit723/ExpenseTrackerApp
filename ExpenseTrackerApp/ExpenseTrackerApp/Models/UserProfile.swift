@@ -6,35 +6,23 @@
 //
 
 import Foundation
-import SwiftUI
-
-enum AppTheme: String, CaseIterable, Codable {
-  case light = "Light"
-  case dark = "Dark"
-  case system = "System"
-
-  var icon: String {
-    switch self {
-    case .light: return "sun.max.fill"
-    case .dark: return "moon.fill"
-    case .system: return "circle.lefthalf.filled"
-    }
-  }
-}
 
 struct UserPreferences: Codable, Hashable {
   var currency: String
   var currencySymbol: String
-  var theme: AppTheme
 
   init(
     currency: String = "USD",
-    currencySymbol: String = "$",
-    theme: AppTheme = .system
+    currencySymbol: String = "$"
   ) {
     self.currency = currency
     self.currencySymbol = currencySymbol
-    self.theme = theme
+  }
+
+  init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    currency = try container.decode(String.self, forKey: .currency)
+    currencySymbol = try container.decode(String.self, forKey: .currencySymbol)
   }
 }
 

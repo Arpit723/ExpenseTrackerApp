@@ -34,7 +34,7 @@ ExpenseTrackerApp/
 │   ├── AuthViewModel.swift              # Auth state, login/register/logout/resetPassword/deleteAccount
 │   ├── DashboardViewModel.swift         # Balance, income, expenses, recent transactions
 │   ├── TransactionViewModel.swift       # Filtering (all/income/expense), sorting, search
-│   └── SettingsViewModel.swift          # Currency & theme management
+│   └── SettingsViewModel.swift          # Currency management
 ├── Views/
 │   ├── MainTabView.swift                # 3 tabs: Dashboard, Transactions, Settings + FAB
 │   ├── Auth/
@@ -45,9 +45,7 @@ ExpenseTrackerApp/
 │   │   ├── TransactionsView.swift       # Date-grouped list with search & filter
 │   │   └── AddTransactionView.swift     # Add/edit transaction sheet
 │   ├── Settings/
-│   │   ├── SettingsView.swift           # Currency, theme, logout, delete account
-│   │   ├── CurrencyPickerView.swift     # Currency selection
-│   │   └── ThemeSelectionView.swift     # Theme selection
+│   │   └── SettingsView.swift           # Currency, logout, delete account
 │   └── Components/
 │       ├── CategoryPickerGrid.swift     # Category selection grid
 │       ├── TransactionRow.swift         # Transaction list item
@@ -60,6 +58,7 @@ ExpenseTrackerApp/
 ├── Utils/
 │   ├── AppError.swift                   # Unified error type: auth, network, data, validation + Firebase mapping
 │   ├── Constants.swift                  # Layout values, Notification.Name extensions, quick amounts
+│   ├── CurrencyManager.swift            # Shared observable currency state (injected via EnvironmentObject)
 │   └── Extensions/
 │       ├── Color+Theme.swift            # App colors, hex init
 │       ├── Date+Extensions.swift        # startOfMonth, isThisMonth, dateGroupTitle
@@ -104,7 +103,7 @@ Key behaviors:
 - Computed totals: `totalBalance`, `totalIncomeThisMonth`, `totalExpensesThisMonth`
 - `groupedTransactions()` returns date-grouped list
 - Firestore snapshot listener for real-time updates
-- Firestore is source of truth for currency/theme
+- Firestore is source of truth for currency
 
 ### Error Handling
 
@@ -261,7 +260,7 @@ A SwiftUI iOS expense tracker with Firebase Authentication (login/register/logou
 ## Data Persistence
 - **Production**: Firebase Firestore per-user storage (`users/{uid}/transactions/{txId}`)
 - **Testing**: In-memory `DataService` singleton with `@Published` arrays
-- `@AppStorage` caches currency/theme locally
+- `CurrencyManager` caches currency locally via UserDefaults and publishes changes via `@Published`
 - Models conform to `Codable` for Firestore serialization
 - Offline: Firestore SDK caches locally, queues writes for sync
 - Real-time updates via Firestore snapshot listener in `FirestoreDataService`
@@ -350,7 +349,7 @@ A SwiftUI iOS expense tracker with Firebase Authentication (login/register/logou
 - Use `Constants.Animation.*` for animation durations
 - Avoid magic numbers in views
 - Use `Date+Extensions` helpers: `.relativeString`, `.shortDate`, `.timeOnly`, `.monthYear`
-- Use `Double.formattedAsCurrency()` extension from `Double+Currency.swift`
+- Use `Double.formattedAsCurrency(code:)` extension from `Double+Currency.swift`, passing `currencyManager.currencyCode`
 <!-- GSD:conventions-end -->
 
 <!-- GSD:architecture-start source:ARCHITECTURE.md -->
@@ -414,7 +413,7 @@ Firebase SDK / In-Memory
 | `@StateObject` | ViewModels owned by views |
 | `@Published` | ViewModel → View reactivity |
 | `@EnvironmentObject` | DataService injected from app root |
-| `@AppStorage` | Currency, theme cached locally |
+| `@AppStorage` | Currency cached locally (backed by CurrencyManager) |
 | `NotificationCenter` | Cross-ViewModel updates |
 | `Combine` | Debounced filter pipeline in TransactionViewModel |
 
@@ -427,18 +426,18 @@ Firebase SDK / In-Memory
 
 ## 7. Cross-Cutting Concerns
 ### 7.1 Theming
+- App locked to light mode via `.preferredColorScheme(.light)` on root view
 - `Color+Theme.swift` defines app color palette
-- `AppTheme` enum supports light/dark/system
 - Colors use semantic names (`.appPrimary`, `.appSuccess`, `.appDanger`)
-- System colors adapt to dark mode automatically
 ### 7.2 Date Handling
 - `Date+Extensions.swift` provides grouping helpers (`isToday`, `isThisWeek`, `isThisMonth`)
 - `Transaction.dateGroupTitle` returns section headers for list grouping
 - Group order: Today → Yesterday → This Week → This Month → Older
 ### 7.3 Currency Formatting
-- `Double+Currency.swift` — `formattedAsCurrency()` using NumberFormatter
-- `Transaction.formattedAmount` and `displayAmount` for UI display
-- User's selected currency from SettingsViewModel stored in @AppStorage
+- `Double+Currency.swift` — `formattedAsCurrency(code:)` using NumberFormatter
+- `Transaction.formattedAmount(currencyCode:)` and `displayAmount(currencyCode:)` for UI display
+- `CurrencyManager` injected as `@EnvironmentObject` — views pass `currencyManager.currencyCode` to formatters
+- Currency changes propagate instantly across all views via `@Published` properties
 <!-- GSD:architecture-end -->
 
 <!-- GSD:skills-start source:skills/ -->

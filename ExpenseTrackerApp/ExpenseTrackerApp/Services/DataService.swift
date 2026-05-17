@@ -49,8 +49,7 @@ class DataService: ObservableObject, DataServiceProtocol {
     userProfile = UserProfile(
       preferences: UserPreferences(
         currency: "USD",
-        currencySymbol: "$",
-        theme: .system
+        currencySymbol: "$"
       )
     )
   }

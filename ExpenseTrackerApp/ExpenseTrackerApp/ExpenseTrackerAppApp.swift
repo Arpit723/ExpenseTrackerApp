@@ -12,6 +12,7 @@ import SwiftUI
 struct ExpenseTrackerAppApp: App {
   @StateObject private var dataServiceContainer = DataServiceContainer()
   @StateObject private var authViewModel: AuthViewModel
+  @StateObject private var currencyManager = CurrencyManager()
 
   private var hasFirebaseConfig: Bool {
     Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil
@@ -36,6 +37,7 @@ struct ExpenseTrackerAppApp: App {
           MainTabView()
             .environmentObject(dataServiceContainer)
             .environmentObject(authViewModel)
+            .environmentObject(currencyManager)
             .task {
               guard hasFirebaseConfig else { return }
               dataServiceContainer.switchToFirestore(uid: authViewModel.currentUser?.uid ?? "")
@@ -55,7 +57,9 @@ struct ExpenseTrackerAppApp: App {
         }
       }
       .animation(
-        .easeInOut(duration: Constants.Animation.default), value: authViewModel.isAuthenticated)
+        .easeInOut(duration: Constants.Animation.default), value: authViewModel.isAuthenticated
+      )
+      .preferredColorScheme(.light)
     }
   }
 }

@@ -36,8 +36,10 @@ struct Transaction: Identifiable, Codable, Hashable {
     self.updatedAt = Date()
   }
 
-  var formattedAmount: String {
-    abs(amount).formattedAsCurrency()
+  func formattedAmount(
+    currencyCode: String = UserDefaults.standard.string(forKey: "currency") ?? "USD"
+  ) -> String {
+    abs(amount).formattedAsCurrency(code: currencyCode)
   }
 
   var isExpense: Bool {
@@ -48,9 +50,11 @@ struct Transaction: Identifiable, Codable, Hashable {
     return amount > 0
   }
 
-  var displayAmount: String {
+  func displayAmount(
+    currencyCode: String = UserDefaults.standard.string(forKey: "currency") ?? "USD"
+  ) -> String {
     let prefix = isExpense ? "-" : "+"
-    return "\(prefix)\(formattedAmount)"
+    return "\(prefix)\(formattedAmount(currencyCode: currencyCode))"
   }
 
   var amountColor: Color {

@@ -10,6 +10,7 @@ import SwiftUI
 struct DashboardView: View {
   var dataService: any DataServiceProtocol
   @StateObject private var viewModel: DashboardViewModel
+  @EnvironmentObject private var currencyManager: CurrencyManager
   @State private var showingAddTransaction = false
   @State private var showError = false
 
@@ -91,7 +92,7 @@ struct DashboardView: View {
         .font(.system(size: 14))
         .foregroundStyle(.white.opacity(0.8))
 
-      Text(viewModel.totalBalance.formattedAsCurrency())
+      Text(viewModel.totalBalance.formattedAsCurrency(code: currencyManager.currencyCode))
         .font(.system(size: 36, weight: .bold))
         .foregroundStyle(.white)
     }
@@ -120,9 +121,11 @@ struct DashboardView: View {
           Text("Income")
             .font(.system(size: 12))
             .foregroundStyle(Color.appTextSecondary)
-          Text(viewModel.totalIncomeThisMonth.formattedAsCurrency())
-            .font(.system(size: 18, weight: .bold))
-            .foregroundStyle(Color.appSuccess)
+          Text(
+            viewModel.totalIncomeThisMonth.formattedAsCurrency(code: currencyManager.currencyCode)
+          )
+          .font(.system(size: 18, weight: .bold))
+          .foregroundStyle(Color.appSuccess)
         }
 
         Spacer()
@@ -131,9 +134,11 @@ struct DashboardView: View {
           Text("Expenses")
             .font(.system(size: 12))
             .foregroundStyle(Color.appTextSecondary)
-          Text(viewModel.totalExpensesThisMonth.formattedAsCurrency())
-            .font(.system(size: 18, weight: .bold))
-            .foregroundStyle(Color.appDanger)
+          Text(
+            viewModel.totalExpensesThisMonth.formattedAsCurrency(code: currencyManager.currencyCode)
+          )
+          .font(.system(size: 18, weight: .bold))
+          .foregroundStyle(Color.appDanger)
         }
       }
     }
@@ -150,7 +155,7 @@ struct DashboardView: View {
         Text("Today's Spending")
           .font(.system(size: 12))
           .foregroundStyle(Color.appTextSecondary)
-        Text(viewModel.todaySpending.formattedAsCurrency())
+        Text(viewModel.todaySpending.formattedAsCurrency(code: currencyManager.currencyCode))
           .font(.system(size: 22, weight: .bold))
           .foregroundStyle(Color.appDanger)
       }
@@ -190,7 +195,7 @@ struct DashboardView: View {
 
           Spacer()
 
-          Text(item.amount.formattedAsCurrency())
+          Text(item.amount.formattedAsCurrency(code: currencyManager.currencyCode))
             .font(.system(size: 14, weight: .semibold))
             .foregroundStyle(Color.appTextPrimary)
         }

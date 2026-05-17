@@ -8,57 +8,58 @@
 import SwiftUI
 
 struct TransactionRow: View {
-    let transaction: Transaction
-    let category: Category?
+  let transaction: Transaction
+  let category: Category?
+  @EnvironmentObject private var currencyManager: CurrencyManager
 
-    var body: some View {
-        HStack(spacing: 12) {
-            // Category Icon (FR-2.2)
-            ZStack {
-                Circle()
-                    .fill((category?.swiftUIColor ?? .gray).opacity(0.15))
-                    .frame(width: 44, height: 44)
+  var body: some View {
+    HStack(spacing: 12) {
+      // Category Icon (FR-2.2)
+      ZStack {
+        Circle()
+          .fill((category?.swiftUIColor ?? .gray).opacity(0.15))
+          .frame(width: 44, height: 44)
 
-                Image(systemName: category?.icon ?? "questionmark.circle")
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundStyle(category?.swiftUIColor ?? .gray)
-            }
+        Image(systemName: category?.icon ?? "questionmark.circle")
+          .font(.system(size: 18, weight: .medium))
+          .foregroundStyle(category?.swiftUIColor ?? .gray)
+      }
 
-            // Transaction Details (FR-2.2: payee or category name, date)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(transaction.payee ?? category?.name ?? "Transaction")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Color.appTextPrimary)
+      // Transaction Details (FR-2.2: payee or category name, date)
+      VStack(alignment: .leading, spacing: 4) {
+        Text(transaction.payee ?? category?.name ?? "Transaction")
+          .font(.system(size: 15, weight: .semibold))
+          .foregroundStyle(Color.appTextPrimary)
 
-                Text(transaction.date.relativeString)
-                    .font(.system(size: 13))
-                    .foregroundStyle(Color.appTextSecondary)
-            }
+        Text(transaction.date.relativeString)
+          .font(.system(size: 13))
+          .foregroundStyle(Color.appTextSecondary)
+      }
 
-            Spacer()
+      Spacer()
 
-            // Amount (FR-2.4: green for income, red for expense)
-            Text(transaction.displayAmount)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(transaction.amountColor)
-        }
-        .padding(.vertical, 8)
-        .contentShape(Rectangle())
+      // Amount (FR-2.4: green for income, red for expense)
+      Text(transaction.displayAmount(currencyCode: currencyManager.currencyCode))
+        .font(.system(size: 15, weight: .semibold))
+        .foregroundStyle(transaction.amountColor)
     }
+    .padding(.vertical, 8)
+    .contentShape(Rectangle())
+  }
 }
 
 // MARK: - Preview
 #Preview {
-    let dataService = DataService.shared
-    VStack(spacing: 0) {
-        ForEach(dataService.transactions.prefix(3)) { transaction in
-            TransactionRow(
-                transaction: transaction,
-                category: dataService.category(for: transaction.categoryId)
-            )
-            Divider()
-                .padding(.leading, 56)
-        }
+  let dataService = DataService.shared
+  VStack(spacing: 0) {
+    ForEach(dataService.transactions.prefix(3)) { transaction in
+      TransactionRow(
+        transaction: transaction,
+        category: dataService.category(for: transaction.categoryId)
+      )
+      Divider()
+        .padding(.leading, 56)
     }
-    .padding(.horizontal)
+  }
+  .padding(.horizontal)
 }

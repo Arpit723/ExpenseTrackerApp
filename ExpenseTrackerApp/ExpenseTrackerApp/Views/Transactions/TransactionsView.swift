@@ -10,6 +10,7 @@ import SwiftUI
 struct TransactionsView: View {
   var dataService: any DataServiceProtocol
   @StateObject private var viewModel: TransactionViewModel
+  @EnvironmentObject private var currencyManager: CurrencyManager
   @State private var showingAddTransaction = false
   @State private var transactionToEdit: Transaction?
   @State private var showingDeleteConfirmation = false
@@ -98,18 +99,23 @@ struct TransactionsView: View {
             Text("Income")
               .font(.system(size: 10))
               .foregroundStyle(Color.appTextTertiary)
-            Text(viewModel.totalIncomeThisMonth.formattedAsCurrency())
-              .font(.system(size: 14, weight: .semibold))
-              .foregroundStyle(Color.appSuccess)
+            Text(
+              viewModel.totalIncomeThisMonth.formattedAsCurrency(code: currencyManager.currencyCode)
+            )
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundStyle(Color.appSuccess)
           }
 
           VStack(alignment: .leading, spacing: 2) {
             Text("Expenses")
               .font(.system(size: 10))
               .foregroundStyle(Color.appTextTertiary)
-            Text(abs(viewModel.totalExpensesThisMonth).formattedAsCurrency())
-              .font(.system(size: 14, weight: .semibold))
-              .foregroundStyle(Color.appDanger)
+            Text(
+              abs(viewModel.totalExpensesThisMonth).formattedAsCurrency(
+                code: currencyManager.currencyCode)
+            )
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundStyle(Color.appDanger)
           }
         }
       }
@@ -120,7 +126,7 @@ struct TransactionsView: View {
         Text("Net")
           .font(.system(size: 10))
           .foregroundStyle(Color.appTextTertiary)
-        Text(viewModel.netThisMonth.formattedAsCurrency())
+        Text(viewModel.netThisMonth.formattedAsCurrency(code: currencyManager.currencyCode))
           .font(.system(size: 16, weight: .bold))
           .foregroundStyle(viewModel.netThisMonth >= 0 ? Color.appSuccess : Color.appDanger)
       }
@@ -254,7 +260,7 @@ struct TransactionsView: View {
         Spacer()
 
         let groupTotal = group.1.reduce(0) { $0 + $1.amount }
-        Text(groupTotal.formattedAsCurrency())
+        Text(groupTotal.formattedAsCurrency(code: currencyManager.currencyCode))
           .font(.system(size: 13, weight: .medium))
           .foregroundStyle(groupTotal >= 0 ? Color.appSuccess : Color.appDanger)
       }

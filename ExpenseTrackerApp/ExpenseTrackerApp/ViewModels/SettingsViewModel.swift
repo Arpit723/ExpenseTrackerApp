@@ -7,17 +7,12 @@
 
 import Combine
 import Foundation
-import SwiftUI
 
 @MainActor
 class SettingsViewModel: ObservableObject {
-  // MARK: - App Storage
-  @AppStorage("appTheme") var appTheme: String = AppTheme.system.rawValue
-  @AppStorage("currency") var currency: String = "USD"
-  @AppStorage("currencySymbol") var currencySymbol: String = "$"
-
   // MARK: - Dependencies
   private let dataService: any DataServiceProtocol
+  private let currencyManager: CurrencyManager
 
   // MARK: - Published Properties
   @Published var error: AppError?
@@ -27,19 +22,10 @@ class SettingsViewModel: ObservableObject {
   private let syncSubject = PassthroughSubject<Void, Never>()
 
   // MARK: - Computed Properties
-  var currentTheme: AppTheme {
-    get { AppTheme(rawValue: appTheme) ?? .system }
-    set {
-      appTheme = newValue.rawValue
-      syncToFirestore()
-    }
-  }
-
   var currentCurrency: (code: String, symbol: String) {
-    get { (currency, currencySymbol) }
+    get { (currencyManager.currencyCode, currencyManager.currencySymbol) }
     set {
-      currency = newValue.code
-      currencySymbol = newValue.symbol
+      currencyManager.update(code: newValue.code, symbol: newValue.symbol)
       syncToFirestore()
     }
   }
@@ -61,8 +47,12 @@ class SettingsViewModel: ObservableObject {
   ]
 
   // MARK: - Initialization
-  init(dataService: any DataServiceProtocol = DataService.shared) {
+  init(
+    dataService: any DataServiceProtocol,
+    currencyManager: CurrencyManager
+  ) {
     self.dataService = dataService
+    self.currencyManager = currencyManager
     syncSubject
       .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
       .sink { [weak self] in self?.performSync() }
@@ -74,9 +64,7 @@ class SettingsViewModel: ObservableObject {
   func syncFromFirestore() {
     guard let profile = dataService.userProfile else { return }
     let prefs = profile.preferences
-    currency = prefs.currency
-    currencySymbol = prefs.currencySymbol
-    appTheme = prefs.theme.rawValue
+    currencyManager.update(code: prefs.currency, symbol: prefs.currencySymbol)
   }
 
   func syncToFirestore() {
@@ -87,9 +75,8 @@ class SettingsViewModel: ObservableObject {
     guard let profile = dataService.userProfile else { return }
     var updated = profile
     updated.preferences = UserPreferences(
-      currency: currency,
-      currencySymbol: currencySymbol,
-      theme: AppTheme(rawValue: appTheme) ?? .system
+      currency: currencyManager.currencyCode,
+      currencySymbol: currencyManager.currencySymbol
     )
     Task {
       do {

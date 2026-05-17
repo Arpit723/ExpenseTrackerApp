@@ -12,6 +12,7 @@ struct SettingsView: View {
   @StateObject private var viewModel: SettingsViewModel
   @ObservedObject var authViewModel: AuthViewModel
   @Environment(\.dismiss) private var dismiss
+  @EnvironmentObject private var currencyManager: CurrencyManager
 
   @State private var showLogoutConfirmation = false
   @State private var showDeleteConfirmation = false
@@ -20,9 +21,13 @@ struct SettingsView: View {
   @State private var showingEditProfile = false
   @State private var showSettingsError = false
 
-  init(dataService: any DataServiceProtocol, authViewModel: AuthViewModel) {
+  init(
+    dataService: any DataServiceProtocol, authViewModel: AuthViewModel,
+    currencyManager: CurrencyManager
+  ) {
     self.dataService = dataService
-    _viewModel = StateObject(wrappedValue: SettingsViewModel(dataService: dataService))
+    _viewModel = StateObject(
+      wrappedValue: SettingsViewModel(dataService: dataService, currencyManager: currencyManager))
     self._authViewModel = ObservedObject(wrappedValue: authViewModel)
   }
 
@@ -110,38 +115,6 @@ struct SettingsView: View {
           }
         }
 
-        // MARK: - Theme Selection (FR-4.2)
-        Section("Theme") {
-          ForEach(AppTheme.allCases, id: \.self) { theme in
-            Button(action: {
-              viewModel.currentTheme = theme
-            }) {
-              HStack {
-                Image(systemName: theme.icon)
-                  .foregroundStyle(Color.appPrimary)
-                  .frame(width: 24)
-
-                VStack(alignment: .leading, spacing: 2) {
-                  Text(theme.rawValue)
-                    .font(.system(size: 15))
-                    .foregroundStyle(Color.appTextPrimary)
-
-                  Text(themeDescription(for: theme))
-                    .font(.system(size: 12))
-                    .foregroundStyle(Color.appTextSecondary)
-                }
-
-                Spacer()
-
-                if viewModel.currentTheme == theme {
-                  Image(systemName: "checkmark")
-                    .foregroundStyle(Color.appPrimary)
-                }
-              }
-            }
-          }
-        }
-
         // MARK: - Danger Zone
         Section {
           Button(action: { showLogoutConfirmation = true }) {
@@ -172,6 +145,37 @@ struct SettingsView: View {
             .foregroundStyle(Color.appDanger)
           }
           .disabled(authViewModel.isLoading)
+        }
+
+        // MARK: - Support
+        Section {
+          Button(action: {
+            if let url = URL(string: "mailto:arpit_goal@yahoo.co.in") {
+              UIApplication.shared.open(url)
+            }
+          }) {
+            HStack {
+              Image(systemName: "envelope.circle")
+                .foregroundStyle(Color.appPrimary)
+                .frame(width: 24)
+
+              VStack(alignment: .leading, spacing: 2) {
+                Text("Support")
+                  .font(.system(size: 15))
+                  .foregroundStyle(Color.appTextPrimary)
+
+                Text("arpit_goal@yahoo.co.in")
+                  .font(.system(size: 13))
+                  .foregroundStyle(Color.appTextSecondary)
+              }
+
+              Spacer()
+
+              Image(systemName: "chevron.right")
+                .font(.system(size: 12))
+                .foregroundStyle(Color.appTextTertiary)
+            }
+          }
         }
 
         // MARK: - Version
@@ -259,18 +263,13 @@ struct SettingsView: View {
       )
     }
   }
-
-  private func themeDescription(for theme: AppTheme) -> String {
-    switch theme {
-    case .light: return "Always use light mode"
-    case .dark: return "Always use dark mode"
-    case .system: return "Follow system appearance"
-    }
-  }
 }
 
 // MARK: - Preview
 #Preview {
   SettingsView(
-    dataService: DataService.shared, authViewModel: AuthViewModel(authService: LocalAuthService()))
+    dataService: DataService.shared,
+    authViewModel: AuthViewModel(authService: LocalAuthService()),
+    currencyManager: CurrencyManager()
+  )
 }

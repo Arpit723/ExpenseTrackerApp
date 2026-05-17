@@ -53,7 +53,7 @@ struct ExpenseTrackerAppApp: App {
           AuthGateView(authViewModel: authViewModel)
             .onAppear { dataServiceContainer.switchToLocal() }
         case .loading:
-          AuthGateView(authViewModel: authViewModel)
+          SplashScreenView()
         }
       }
       .animation(
@@ -110,5 +110,52 @@ struct AuthGateView: View {
         Text(authViewModel.error?.localizedDescription ?? "")
       }
     )
+  }
+}
+
+// MARK: - Splash Screen
+struct SplashScreenView: View {
+  @State private var isAnimating = false
+
+  var body: some View {
+    ZStack {
+      LinearGradient(
+        gradient: Gradient(colors: [Color.appPrimary, Color.appSecondary]),
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+      )
+      .ignoresSafeArea()
+
+      VStack(spacing: 24) {
+        Image(systemName: "wallet.pass.fill")
+          .font(.system(size: 72, weight: .medium))
+          .foregroundStyle(.white)
+          .scaleEffect(isAnimating ? 1.0 : 0.6)
+          .opacity(isAnimating ? 1.0 : 0.0)
+
+        VStack(spacing: 6) {
+          Text("Expense Tracker")
+            .font(.system(size: 28, weight: .bold))
+            .foregroundStyle(.white)
+
+          Text("Track your spending effortlessly")
+            .font(.system(size: 14))
+            .foregroundStyle(.white.opacity(0.8))
+        }
+        .opacity(isAnimating ? 1.0 : 0.0)
+        .offset(y: isAnimating ? 0 : 12)
+
+        ProgressView()
+          .progressViewStyle(.circular)
+          .tint(.white)
+          .padding(.top, 16)
+          .opacity(isAnimating ? 0.8 : 0.0)
+      }
+      .animation(
+        .spring(response: 0.6, dampingFraction: 0.7),
+        value: isAnimating
+      )
+    }
+    .onAppear { isAnimating = true }
   }
 }
